@@ -82,6 +82,7 @@ def test_default_config(test_config: Settings, test_database_path: str) -> None:
             "always_expanded": False,
             "default_color": "#004578",
             "metadata_always_expanded": True,
+            "show_task_id": True,
             "movement_mode": "adjacent",
             "append_mode": "top",
         },

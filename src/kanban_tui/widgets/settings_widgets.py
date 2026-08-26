@@ -207,6 +207,26 @@ class TaskMetadataAlwaysExpandedSwitch(Horizontal):
         self.app.config.set_task_metadata_always_expanded(new_value=event.value)
 
 
+class TaskShowTaskIdSwitch(Horizontal):
+    app: "KanbanTui"
+
+    def on_mount(self):
+        self.border_title = "task.show_task_id"
+
+    def compose(self) -> Iterable[Widget]:
+        yield Label("Show Task Id")
+        task_id_switch = Switch(
+            value=self.app.config.task.show_task_id,
+            id="switch_show_task_id",
+        )
+        task_id_switch.jump_mode = "focus"
+        yield task_id_switch
+
+    @on(Switch.Changed)
+    def update_config(self, event: Switch.Changed):
+        self.app.config.set_task_show_task_id(new_value=event.value)
+
+
 class TaskDefaultColorSelector(Horizontal):
     app: KanbanTui
 
@@ -722,6 +742,7 @@ class SettingsView(Vertical):
         with Horizontal(classes="setting-horizontal"):
             yield TaskAlwaysExpandedSwitch(classes="setting-block")
             yield TaskMetadataAlwaysExpandedSwitch(classes="setting-block")
+            yield TaskShowTaskIdSwitch(classes="setting-block")
         with Horizontal(classes="setting-horizontal"):
             yield TaskDefaultColorSelector(classes="setting-block")
             yield TaskMovementSelector(classes="setting-block")
