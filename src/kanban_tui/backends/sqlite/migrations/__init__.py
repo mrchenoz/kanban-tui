@@ -1,6 +1,5 @@
-from sqlite3 import Connection
-
 from importlib.resources import files
+from sqlite3 import Connection
 
 CURRENT_SCHEMA_VERSION = 4
 

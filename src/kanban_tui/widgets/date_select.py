@@ -2,7 +2,7 @@ from datetime import datetime
 
 from textual.binding import Binding
 
-from kanban_tui.textual_datepicker import DateSelect, DatePicker
+from kanban_tui.textual_datepicker import DatePicker, DateSelect
 from kanban_tui.textual_datepicker._date_select import DatePickerDialog
 
 

@@ -1,18 +1,18 @@
 import sys
-from typing import Iterable, TYPE_CHECKING, Literal
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
     from kanban_tui.app import KanbanTui
 
 from rich.text import Text
-from textual.reactive import reactive
 from textual import on
-from textual.widget import Widget
 from textual.binding import Binding
-
-from textual.screen import ModalScreen
-from textual.widgets import Button, Footer, Input, Label
 from textual.containers import Horizontal, Vertical
+from textual.reactive import reactive
+from textual.screen import ModalScreen
+from textual.widget import Widget
+from textual.widgets import Button, Footer, Input, Label
 
 from kanban_tui.widgets.custom_widgets import IconButton
 

@@ -1,6 +1,6 @@
 [project]
 name = "kanban-tui"
-version = "0.21.1"
+version = "0.21.2"
 description = "customizable task tui powered by textual usable by agents"
 authors = [
     { name = "Zaloog", email = "gramslars@gmail.com" }
@@ -102,6 +102,16 @@ exclude_also = [
     ]
 
 ignore_errors = true
+
+[tool.ruff.lint]
+ignore = [
+    # Naive datetimes are used intentionally throughout this project
+    "DTZ",
+    # Mutable default value for class attribute (Textual widgets rely on this pattern)
+    "RUF012",
+    # Bare Exceptions
+    "BLE001",
+    ]
 
 [tool.mypy]
 ignore_missing_imports = true

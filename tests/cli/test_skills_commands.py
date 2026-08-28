@@ -2,11 +2,9 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-import kanban_tui.cli.skills_commands as skills_commands
 import kanban_tui.skills as skills_module
-
-from kanban_tui.cli import cli
-from kanban_tui.skills import get_skill_md, get_skill_local_path, get_skill_global_path
+from kanban_tui.cli import cli, skills_commands
+from kanban_tui.skills import get_skill_global_path, get_skill_local_path, get_skill_md
 
 DELETE_OUTPUT = """Delete all kanban-tui SKILL.md files and the kanban-tui folder? [y/N]: y
 Local Skill under LOCAL_SKILL_PATH deleted successfully.

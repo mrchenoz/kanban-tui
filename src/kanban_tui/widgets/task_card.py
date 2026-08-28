@@ -1,35 +1,35 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING, Literal
 
-from kanban_tui.config import MovementModes, Backends
+from kanban_tui.config import Backends, MovementModes
 
 if TYPE_CHECKING:
     from kanban_tui.app import KanbanTui
 
 from rich.text import Text
 from textual import on, work
-from textual.reactive import reactive
-from textual.binding import Binding
-from textual.events import Click
 from textual.app import ComposeResult
+from textual.binding import Binding
 from textual.containers import Vertical, VerticalScroll
-from textual.widgets import Label, Markdown
+from textual.events import Click
 from textual.message import Message
-
+from textual.reactive import reactive
+from textual.widgets import Label, Markdown
 
 from kanban_tui.classes.task import Task
-from kanban_tui.utils import get_column_status_dict
-from kanban_tui.modal.modal_task_screen import ModalTaskEditScreen
 from kanban_tui.modal.modal_confirm_screen import ModalConfirmScreen
+from kanban_tui.modal.modal_task_screen import ModalTaskEditScreen
+from kanban_tui.utils import get_column_status_dict
 
 
 class TaskCard(Vertical):
-    app: "KanbanTui"
+    app: KanbanTui
     expanded: reactive[bool] = reactive(False, bindings=True)
     mouse_down: reactive[bool] = reactive(False)
     task_: reactive[Task | None] = reactive(None, bindings=True, init=False)
 
-    BINDINGS = [
+    BINDINGS = (
         Binding("H", "move_task('left')", description="👈", show=True, key_display="H"),
         Binding(
             "K",
@@ -61,7 +61,7 @@ class TaskCard(Vertical):
             show=True,
             key_display="J",
         ),
-    ]
+    )
 
     class Focused(Message):
         def __init__(self, taskcard: TaskCard) -> None:
@@ -157,13 +157,18 @@ class TaskCard(Vertical):
         )
 
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
-        if self.app.config.backend.mode == Backends.JIRA:
-            if action not in ("edit_task", "move_task", "show_blocking_tasks"):
-                return False
+        if self.app.config.backend.mode == Backends.JIRA and action not in (
+            "edit_task",
+            "move_task",
+            "show_blocking_tasks",
+        ):
+            return False
 
-        if action == "move_task_position":
-            if self.app.config.backend.mode != Backends.SQLITE:
-                return False
+        if (
+            action == "move_task_position"
+            and self.app.config.backend.mode != Backends.SQLITE
+        ):
+            return False
 
         if action == "edit_task":
             from kanban_tui.widgets.board_widgets import KanbanBoard

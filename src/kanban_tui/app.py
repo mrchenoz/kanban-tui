@@ -1,6 +1,7 @@
 from __future__ import annotations
-from pathlib import Path
+
 from importlib.metadata import version
+from pathlib import Path
 
 from textual import on, work
 from textual.app import App
@@ -9,20 +10,20 @@ from textual.reactive import reactive
 from textual.timer import Timer
 from textual.widgets import Select
 
+from kanban_tui.backends import SqliteBackend
+from kanban_tui.classes.board import Board
+from kanban_tui.classes.column import Column
+from kanban_tui.classes.task import Task
+from kanban_tui.config import (
+    SETTINGS,
+    Backends,
+    Settings,
+    init_config,
+)
 from kanban_tui.modal.modal_auth_screen import ModalAuthScreen
 from kanban_tui.screens.board_screen import BoardScreen
 from kanban_tui.screens.overview_screen import OverViewScreen
 from kanban_tui.screens.settings_screen import SettingsScreen
-from kanban_tui.config import (
-    Backends,
-    init_config,
-    SETTINGS,
-    Settings,
-)
-from kanban_tui.backends import SqliteBackend
-from kanban_tui.classes.task import Task
-from kanban_tui.classes.board import Board
-from kanban_tui.classes.column import Column
 from kanban_tui.widgets.custom_widgets import KanbanTuiFooter
 
 

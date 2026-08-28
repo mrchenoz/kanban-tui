@@ -1,20 +1,20 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from kanban_tui.app import KanbanTui
 
-from kanban_tui.skills import get_skill_local_path, get_skill_global_path
 import os
 import re
-from pathlib import Path
-from typing import Literal, Any
 from datetime import datetime, timedelta
-from dateutil.rrule import rrule, MONTHLY, WEEKLY, DAILY
 from functools import lru_cache
+from pathlib import Path
+from typing import Any, Literal
 
-from rich.table import Table
+from dateutil.rrule import DAILY, MONTHLY, WEEKLY, rrule
 from rich.console import Console, RenderableType
+from rich.table import Table
 
 from kanban_tui.constants import (
     AUTH_FILE,
@@ -23,6 +23,7 @@ from kanban_tui.constants import (
     DEMO_CONFIG_FILE,
     DEMO_DATABASE_FILE,
 )
+from kanban_tui.skills import get_skill_global_path, get_skill_local_path
 
 
 def get_column_status_dict(
@@ -95,7 +96,7 @@ def getrgb(color: str) -> tuple[int, int, int] | tuple[int, int, int, int]:
         raise ValueError(msg)
     color = color.lower()
 
-    rgb = colormap.get(color, None)
+    rgb = colormap.get(color)
     if rgb:
         if isinstance(rgb, tuple):
             return rgb
@@ -176,37 +177,66 @@ def getrgb(color: str) -> tuple[int, int, int] | tuple[int, int, int, int]:
     m = re.match(r"rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$", color)
     if m:
         return int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4))
-    msg = f"unknown color specifier: {repr(color)}"
+    msg = f"unknown color specifier: {color!r}"
     raise ValueError(msg)
 
 
 # Curated list of distinct, vibrant colors for category suggestions
 CATEGORY_COLOR_POOL = [
-    "blue", "green", "red", "orange", "purple", "cyan", "magenta", "yellow",
-    "lime", "pink", "teal", "indigo", "coral", "gold", "salmon", "turquoise",
-    "violet", "crimson", "royalblue", "forestgreen", "tomato", "orchid",
-    "chocolate", "steelblue", "olivedrab", "hotpink", "darkorange", "mediumseagreen",
-    "slateblue", "darkviolet", "lightcoral", "dodgerblue", "darkgoldenrod", "mediumorchid",
+    "blue",
+    "green",
+    "red",
+    "orange",
+    "purple",
+    "cyan",
+    "magenta",
+    "yellow",
+    "lime",
+    "pink",
+    "teal",
+    "indigo",
+    "coral",
+    "gold",
+    "salmon",
+    "turquoise",
+    "violet",
+    "crimson",
+    "royalblue",
+    "forestgreen",
+    "tomato",
+    "orchid",
+    "chocolate",
+    "steelblue",
+    "olivedrab",
+    "hotpink",
+    "darkorange",
+    "mediumseagreen",
+    "slateblue",
+    "darkviolet",
+    "lightcoral",
+    "dodgerblue",
+    "darkgoldenrod",
+    "mediumorchid",
 ]
 
 
 def get_next_category_color(used_colors: list[str]) -> str:
     """Get the next available color from the pool for a new category.
-    
+
     Args:
         used_colors: List of colors already used by existing categories
-        
+
     Returns:
         A color name from the pool that hasn't been used yet, or cycles back to the start
     """
     # Normalize used colors to lowercase for comparison
     used_colors_lower = [color.lower() for color in used_colors]
-    
+
     # Find first unused color
     for color in CATEGORY_COLOR_POOL:
         if color not in used_colors_lower:
             return color
-    
+
     # If all colors are used, cycle back to the start
     return CATEGORY_COLOR_POOL[len(used_colors) % len(CATEGORY_COLOR_POOL)]
 
@@ -401,7 +431,7 @@ def calculate_work_on_time(
     if delta_days < 1:
         workon_time += (finish_date - start_date) // timedelta(minutes=1)
     else:
-        for day in range(0, delta_days + 1):
+        for day in range(delta_days + 1):
             # first day
             if day == 0:
                 workon_time += (end_limit_start - start_date) // timedelta(minutes=1)
@@ -417,7 +447,7 @@ def calculate_work_on_time(
     return workon_time
 
 
-def create_demo_tasks(app: "KanbanTui"):
+def create_demo_tasks(app: KanbanTui):
     app.backend.create_new_category(name="red", color="#8F0000")
     app.backend.create_new_category(name="green", color="#008F00")
     app.backend.create_new_category(name="blue", color="#00008F")
@@ -466,14 +496,14 @@ def create_demo_tasks(app: "KanbanTui"):
         column=3,
     )
     # Archive
-    for month in range(5, 10):
+    for _month in range(5, 10):
         app.backend.create_new_task(
             title="Task_red_archive",
             description="Hallo",
             category=1,
             column=4,
         )
-    for day in range(20, 25):
+    for _day in range(20, 25):
         app.backend.create_new_task(
             title="Task_red_archive",
             description="Hallo",

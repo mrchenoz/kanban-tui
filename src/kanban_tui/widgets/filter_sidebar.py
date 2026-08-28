@@ -1,20 +1,21 @@
-from typing import Iterable, TYPE_CHECKING
+from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from kanban_tui.app import KanbanTui
 
 from textual import on
-from textual.events import Mount
 from textual.binding import Binding
-from textual.widget import Widget
+from textual.containers import Horizontal, Vertical
+from textual.events import Mount
 from textual.reactive import reactive
+from textual.widget import Widget
 from textual.widgets import Button, Label, SelectionList
 from textual.widgets.selection_list import Selection
-from textual.containers import Vertical, Horizontal
 
+from kanban_tui.classes.task import Task
 from kanban_tui.textual_datepicker import DatePicker
 from kanban_tui.widgets.date_select import CustomDateSelect
-from kanban_tui.classes.task import Task
 
 
 class FilterOverlay(Vertical):
@@ -52,13 +53,17 @@ class FilterOverlay(Vertical):
         self.filtered_task_list.clear()
         # Change For-loop Order
         for task in self.app.task_list:
-            if isinstance(event, SelectionList.SelectedChanged):
-                if task.category in event.selection_list.selected:
-                    self.filtered_task_list.append(task)
-            if isinstance(event, DatePicker.Selected):
-                if task.due_date:
-                    if event.date.date() <= task.due_date:
-                        self.filtered_task_list.append(task)
+            if (
+                isinstance(event, SelectionList.SelectedChanged)
+                and task.category in event.selection_list.selected
+            ):
+                self.filtered_task_list.append(task)
+            if (
+                isinstance(event, DatePicker.Selected)
+                and task.due_date
+                and event.date.date() <= task.due_date
+            ):
+                self.filtered_task_list.append(task)
 
         self.mutate_reactive(FilterOverlay.filtered_task_list)
 
@@ -94,7 +99,7 @@ class CategoryFilter(SelectionList):
         return super().on_mount()
 
     def update_categories(self):
-        category_list = list(set(task.category for task in self.app.task_list))
+        category_list = list({task.category for task in self.app.task_list})
         if self.option_count == len(category_list):
             return
 

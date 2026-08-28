@@ -1,9 +1,10 @@
 from textual.widgets import Button, Input
+
 from kanban_tui.app import KanbanTui
 from kanban_tui.modal.modal_category_screen import (
+    CategoryList,
     ModalCategoryManageScreen,
     ModalNewCategoryScreen,
-    CategoryList,
 )
 from kanban_tui.modal.modal_confirm_screen import ModalConfirmScreen
 

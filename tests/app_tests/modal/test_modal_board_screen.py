@@ -1,15 +1,15 @@
 import pytest
+from rich.emoji import Emoji
+from textual.widgets import Button, Input, Label, Static
+
 from kanban_tui.app import KanbanTui
-from textual.widgets import Input, Button, Static, Label
-from kanban_tui.screens.board_screen import BoardScreen
-from kanban_tui.modal.modal_confirm_screen import ModalConfirmScreen
 from kanban_tui.modal.modal_board_screen import (
     ModalBoardOverviewScreen,
     ModalNewBoardScreen,
 )
-
+from kanban_tui.modal.modal_confirm_screen import ModalConfirmScreen
+from kanban_tui.screens.board_screen import BoardScreen
 from kanban_tui.widgets.task_card import TaskCard
-from rich.emoji import Emoji
 
 APP_SIZE = (150, 50)
 

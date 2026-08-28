@@ -1,12 +1,12 @@
 import os
-from pathlib import Path
 from importlib.metadata import version
 from importlib.resources import files
+from pathlib import Path
 
 from kanban_tui.constants import (
-    CLAUDE_SKILL_NAME,
-    CLAUDE_SKILL_LOCAL_DIR,
     CLAUDE_SKILL_GLOBAL_DIR,
+    CLAUDE_SKILL_LOCAL_DIR,
+    CLAUDE_SKILL_NAME,
 )
 
 

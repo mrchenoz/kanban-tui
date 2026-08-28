@@ -3,21 +3,20 @@ from datetime import datetime
 
 from atlassian import Jira
 
-from kanban_tui.backends.auth import AuthSettings
+from kanban_tui.backends.auth import AuthSettings, init_auth_file
 from kanban_tui.backends.base import Backend
+from kanban_tui.backends.jira.jira_api import (
+    authenticate_to_jira,
+    get_jql,
+    get_transitions,
+    set_issue_status,
+)
+from kanban_tui.backends.jira.models import JiraIssue
 from kanban_tui.classes.board import Board
 from kanban_tui.classes.category import Category
 from kanban_tui.classes.column import Column
 from kanban_tui.classes.task import Task
 from kanban_tui.config import JiraBackendSettings, JqlEntry
-from kanban_tui.backends.auth import init_auth_file
-from kanban_tui.backends.jira.jira_api import (
-    get_jql,
-    authenticate_to_jira,
-    get_transitions,
-    set_issue_status,
-)
-from kanban_tui.backends.jira.models import JiraIssue
 
 
 @dataclass
@@ -120,20 +119,17 @@ class JiraBackend(Backend):
     def get_tasks_by_board_id(self, board_id: int) -> list[Task]:
         """Execute active JQL query and convert issues to Tasks"""
 
-        board_jql_entry = [
+        board_jql_entry = next(
             entry for entry in self.settings.jqls if entry.id == board_id
-        ][0]
+        )
 
         jql_result = get_jql(self.auth, board_jql_entry.jql)
         issues = jql_result.get("issues", [])
 
         tasks = []
         for issue_data in issues:
-            try:
-                task = self._jira_issue_to_task(issue_data, board_id=board_id)
-                tasks.append(task)
-            except Exception as e:
-                raise e
+            task = self._jira_issue_to_task(issue_data, board_id=board_id)
+            tasks.append(task)
 
         # Resolve dependencies
         self._resolve_issue_dependencies(tasks, issues)
@@ -267,12 +263,12 @@ class JiraBackend(Backend):
         key_to_task = {}
         id_to_task = {}
 
-        for issue, task in zip(issues, tasks):
+        for issue, task in zip(issues, tasks, strict=False):
             key_to_task[issue["key"]] = task
             id_to_task[issue["id"]] = task
 
         # Process issue links
-        for issue, task in zip(issues, tasks):
+        for issue, task in zip(issues, tasks, strict=False):
             issue_links = issue.get("fields", {}).get("issuelinks", [])
 
             for link in issue_links:
@@ -292,12 +288,15 @@ class JiraBackend(Backend):
                             outward_task = id_to_task[outward_id]
                             if int(outward_task.task_id) not in task.blocking:
                                 task.blocking.append(int(outward_task.task_id))
-                    elif "depend" in link_type_name:
+                    elif (
+                        "depend" in link_type_name
+                        and outward_id
+                        and outward_id in id_to_task
+                    ):
                         # Current issue depends on the outward issue
-                        if outward_id and outward_id in id_to_task:
-                            outward_task = id_to_task[outward_id]
-                            if int(outward_task.task_id) not in task.blocked_by:
-                                task.blocked_by.append(int(outward_task.task_id))
+                        outward_task = id_to_task[outward_id]
+                        if int(outward_task.task_id) not in task.blocked_by:
+                            task.blocked_by.append(int(outward_task.task_id))
 
                 # Handle inward links (other issue blocks/depends on current)
                 if "inwardIssue" in link:
@@ -312,12 +311,15 @@ class JiraBackend(Backend):
                             inward_task = id_to_task[inward_id]
                             if int(inward_task.task_id) not in task.blocked_by:
                                 task.blocked_by.append(int(inward_task.task_id))
-                    elif "depend" in link_type_name:
+                    elif (
+                        "depend" in link_type_name
+                        and inward_id
+                        and inward_id in id_to_task
+                    ):
                         # Inward issue depends on current issue
-                        if inward_id and inward_id in id_to_task:
-                            inward_task = id_to_task[inward_id]
-                            if int(inward_task.task_id) not in task.blocking:
-                                task.blocking.append(int(inward_task.task_id))
+                        inward_task = id_to_task[inward_id]
+                        if int(inward_task.task_id) not in task.blocking:
+                            task.blocking.append(int(inward_task.task_id))
 
     @property
     def active_board(self) -> Board | None:
@@ -386,7 +388,7 @@ class JiraBackend(Backend):
         except Exception as e:
             return {
                 "success": False,
-                "message": f"Failed to fetch transitions: {str(e)}",
+                "message": f"Failed to fetch transitions: {e!s}",
             }
 
         # For each transition, map its target status back to a column ID
@@ -422,10 +424,7 @@ class JiraBackend(Backend):
     def create_new_board(
         self, name: str, jql: str, column_mapping: dict[str, int] | None = None
     ) -> int:
-        if self.settings.jqls:
-            new_id = self.settings.jqls[-1].id + 1
-        else:
-            new_id = 1
+        new_id = self.settings.jqls[-1].id + 1 if self.settings.jqls else 1
 
         new_jql = JqlEntry(
             id=new_id, name=name, jql=jql, column_mapping=column_mapping or {}

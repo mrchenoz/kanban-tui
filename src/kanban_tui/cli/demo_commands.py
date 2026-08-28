@@ -7,7 +7,7 @@ from kanban_tui.constants import (
     DEMO_CONFIG_FILE,
     DEMO_DATABASE_FILE,
 )
-from kanban_tui.utils import print_to_console, create_demo_tasks
+from kanban_tui.utils import create_demo_tasks, print_to_console
 
 
 @click.command()

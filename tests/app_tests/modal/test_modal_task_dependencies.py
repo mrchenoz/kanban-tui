@@ -1,11 +1,12 @@
+from textual.widgets import DataTable
+
 from kanban_tui.app import KanbanTui
 from kanban_tui.modal.modal_task_screen import ModalTaskEditScreen
 from kanban_tui.widgets.modal_task_widgets import (
-    TaskDependencyManager,
     DependencySelector,
+    TaskDependencyManager,
 )
 from kanban_tui.widgets.task_card import TaskCard
-from textual.widgets import DataTable
 
 APP_SIZE = (150, 50)
 

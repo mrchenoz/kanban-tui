@@ -1,16 +1,17 @@
-from typing import Iterable, TYPE_CHECKING
+from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from kanban_tui.app import KanbanTui
 
 from rich.text import Text
+from textual.containers import Vertical, VerticalScroll
 from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import Label
-from textual.containers import VerticalScroll, Vertical
 
-from kanban_tui.widgets.task_card import TaskCard
 from kanban_tui.classes.task import Task
+from kanban_tui.widgets.task_card import TaskCard
 
 
 class Column(Vertical):
@@ -170,7 +171,9 @@ class Column(Vertical):
         task_cards: list[TaskCard],
         task_list: list[Task],
     ) -> None:
-        for row_position, (task_card, task) in enumerate(zip(task_cards, task_list)):
+        for row_position, (task_card, task) in enumerate(
+            zip(task_cards, task_list, strict=False)
+        ):
             task.position = row_position
             if self.app.needs_refresh or task_card.task_ != task:
                 task_card.task_ = task

@@ -145,9 +145,7 @@ def update_board(app: KanbanTui, board_id: int, name: str | None, icon: str | No
     Updates an existing board
     """
     boards = app.backend.get_boards()
-    target_board = next(
-        (board for board in boards if board.board_id == board_id), None
-    )
+    target_board = next((board for board in boards if board.board_id == board_id), None)
 
     if not target_board:
         print_to_console(f"[red]There is no board with {board_id = }[/].")
@@ -158,6 +156,7 @@ def update_board(app: KanbanTui, board_id: int, name: str | None, icon: str | No
 
     app.backend.update_board(board_id, updated_name, updated_icon)
     print_to_console(f"Updated board with {board_id = }.")
+
 
 @board.command("activate")
 @click.pass_obj

@@ -1,19 +1,20 @@
-from kanban_tui.modal.modal_jira_url_screen import ModalBaseUrlScreen
-from typing import Iterable, TYPE_CHECKING
+from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 from kanban_tui.config import Backends
 from kanban_tui.modal.modal_auth_screen import ModalAuthScreen
+from kanban_tui.modal.modal_jira_url_screen import ModalBaseUrlScreen
 
 if TYPE_CHECKING:
     from kanban_tui.app import KanbanTui
 
 from rich.text import Text
 from textual import on, work
-from textual.reactive import reactive
-from textual.widget import Widget
 from textual.events import ScreenResume
-from textual.widgets import Header
+from textual.reactive import reactive
 from textual.screen import Screen
+from textual.widget import Widget
+from textual.widgets import Header
 from textual.worker import get_current_worker
 
 from kanban_tui.classes.board import Board

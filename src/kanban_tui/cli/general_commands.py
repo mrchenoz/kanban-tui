@@ -7,13 +7,12 @@ import click
 
 from kanban_tui.app import KanbanTui
 from kanban_tui.config import Backends
-from kanban_tui.utils import build_info_table
-from kanban_tui.utils import print_to_console
 from kanban_tui.constants import (
     AUTH_FILE,
     CONFIG_FILE,
     DATABASE_FILE,
 )
+from kanban_tui.utils import build_info_table, print_to_console
 
 
 @click.command()

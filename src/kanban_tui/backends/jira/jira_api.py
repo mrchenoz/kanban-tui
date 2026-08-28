@@ -1,6 +1,7 @@
-from atlassian.jira import Jira
 import asyncio
 from functools import partial
+
+from atlassian.jira import Jira
 
 
 def authenticate_to_jira(base_url: str, api_token: str, cert_path: str) -> Jira:

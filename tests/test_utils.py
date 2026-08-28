@@ -1,16 +1,17 @@
-from textual.color import Color
-import pytest
 from datetime import datetime
-from kanban_tui.utils import (
-    calculate_work_on_time,
-    get_days_left_till_due,
-    get_time_range,
-    get_column_status_dict,
-    get_next_category_color,
-    CATEGORY_COLOR_POOL,
-)
 
+import pytest
 from freezegun import freeze_time
+from textual.color import Color
+
+from kanban_tui.utils import (
+    CATEGORY_COLOR_POOL,
+    calculate_work_on_time,
+    get_column_status_dict,
+    get_days_left_till_due,
+    get_next_category_color,
+    get_time_range,
+)
 
 
 @pytest.mark.parametrize(

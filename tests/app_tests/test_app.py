@@ -4,9 +4,9 @@ from kanban_tui.app import KanbanTui
 from kanban_tui.backends.sqlite.backend import SqliteBackend
 from kanban_tui.config import Backends
 from kanban_tui.modal.modal_auth_screen import ModalAuthScreen
+from kanban_tui.modal.modal_board_screen import ModalBoardOverviewScreen
 from kanban_tui.screens.board_screen import BoardScreen
 from kanban_tui.widgets.board_widgets import KanbanBoard
-from kanban_tui.modal.modal_board_screen import ModalBoardOverviewScreen
 
 APP_SIZE = (150, 50)
 

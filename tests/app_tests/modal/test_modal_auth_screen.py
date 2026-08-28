@@ -1,13 +1,13 @@
-from kanban_tui.modal.modal_board_screen import ModalBoardOverviewScreen
-from kanban_tui.modal.modal_jira_url_screen import ModalBaseUrlScreen
 import os
 from pathlib import Path
 
-from kanban_tui.app import KanbanTui
 from textual.widgets import Input
 
+from kanban_tui.app import KanbanTui
 from kanban_tui.config import Backends
 from kanban_tui.modal.modal_auth_screen import ApiKeyWidget, IconButton, ModalAuthScreen
+from kanban_tui.modal.modal_board_screen import ModalBoardOverviewScreen
+from kanban_tui.modal.modal_jira_url_screen import ModalBaseUrlScreen
 
 APP_SIZE = (150, 50)
 

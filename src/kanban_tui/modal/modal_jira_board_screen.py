@@ -1,20 +1,22 @@
-from kanban_tui.widgets.settings_widgets import RepositionButton
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Literal
+
+from kanban_tui.classes.board import Board
 from kanban_tui.config import JqlEntry
 from kanban_tui.widgets.custom_widgets import ButtonRow
-from kanban_tui.classes.board import Board
-from typing import Iterable, TYPE_CHECKING, Literal
+from kanban_tui.widgets.settings_widgets import RepositionButton
 
 if TYPE_CHECKING:
     from kanban_tui.app import KanbanTui
 
-from textual import on, work
-from textual.widget import Widget
-from textual.binding import Binding
-from textual.screen import ModalScreen
-from textual.widgets import Input, Button, Label, Static, ListView, ListItem
-from textual.containers import Vertical, Horizontal, VerticalGroup
-from textual.validation import Validator, ValidationResult
 from rich.text import Text
+from textual import on, work
+from textual.binding import Binding
+from textual.containers import Horizontal, Vertical, VerticalGroup
+from textual.screen import ModalScreen
+from textual.validation import ValidationResult, Validator
+from textual.widget import Widget
+from textual.widgets import Button, Input, Label, ListItem, ListView, Static
 
 from kanban_tui.backends.jira.jira_api import (
     get_jql,
@@ -129,9 +131,9 @@ class ModalNewJiraBoardScreen(ModalScreen):
             yield ButtonRow(id="horizontal_buttons")
 
     def board_to_jql(self, board: Board) -> JqlEntry:
-        return [
+        return next(
             jql for jql in self.app.backend.settings.jqls if jql.id == board.board_id
-        ][0]
+        )
 
     def on_mount(self) -> None:
         if self.jira_board:
@@ -274,7 +276,7 @@ class ModalNewJiraBoardScreen(ModalScreen):
             self.call_after_refresh(callback=self.query_one(JiraColumnList).focus)
 
         except Exception as e:
-            status_widget.update(f"❌ Error: {str(e)}")
+            status_widget.update(f"❌ Error: {e!s}")
             self.jql_validated = False
             self.detected_columns = []
             self.query_exactly_one("#column_container", Vertical).add_class("hidden")

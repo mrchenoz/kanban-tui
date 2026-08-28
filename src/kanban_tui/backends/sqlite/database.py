@@ -1,17 +1,11 @@
+import datetime
 import json
 import sqlite3
-from pathlib import Path
-from typing import Any, Generator, Sequence
+from collections.abc import Generator, Sequence
 from contextlib import contextmanager
-import datetime
+from pathlib import Path
+from typing import Any
 
-from kanban_tui.classes.category import Category
-from kanban_tui.constants import DATABASE_FILE, DEFAULT_COLUMN_DICT
-from kanban_tui.classes.task import Task
-from kanban_tui.classes.board import Board
-from kanban_tui.classes.column import Column
-from kanban_tui.classes.logevent import LogEvent
-from kanban_tui.config import TaskAppendModes
 from kanban_tui.backends.sqlite.migrations import (
     CURRENT_SCHEMA_VERSION,
     apply_migration_v1_to_v2,
@@ -19,6 +13,13 @@ from kanban_tui.backends.sqlite.migrations import (
     apply_migration_v3_to_v4,
     increment_schema_version,
 )
+from kanban_tui.classes.board import Board
+from kanban_tui.classes.category import Category
+from kanban_tui.classes.column import Column
+from kanban_tui.classes.logevent import LogEvent
+from kanban_tui.classes.task import Task
+from kanban_tui.config import TaskAppendModes
+from kanban_tui.constants import DATABASE_FILE, DEFAULT_COLUMN_DICT
 
 
 def adapt_datetime_iso(val: datetime.datetime) -> str:
@@ -49,7 +50,7 @@ def create_connection(
 
 def task_factory(cursor, row):
     fields = [column[0] for column in cursor.description]
-    data = dict(zip(fields, row))
+    data = dict(zip(fields, row, strict=False))
 
     # Parse JSON arrays for dependency fields
     if "blocked_by" in data and isinstance(data["blocked_by"], str):
@@ -72,27 +73,27 @@ def task_factory(cursor, row):
 
 def board_factory(cursor, row):
     fields = [column[0] for column in cursor.description]
-    return Board(**{k: v for k, v in zip(fields, row)})
+    return Board(**{k: v for k, v in zip(fields, row, strict=False)})
 
 
 def category_factory(cursor, row):
     fields = [column[0] for column in cursor.description]
-    return Category(**{k: v for k, v in zip(fields, row)})
+    return Category(**{k: v for k, v in zip(fields, row, strict=False)})
 
 
 def column_factory(cursor, row):
     fields = [column[0] for column in cursor.description]
-    return Column(**{k: v for k, v in zip(fields, row)})
+    return Column(**{k: v for k, v in zip(fields, row, strict=False)})
 
 
 def logevent_factory(cursor, row):
     fields = [column[0] for column in cursor.description]
-    return LogEvent(**{k: v for k, v in zip(fields, row)})
+    return LogEvent(**{k: v for k, v in zip(fields, row, strict=False)})
 
 
 def board_info_factory(cursor, row):
     fields = [column[0] for column in cursor.description]
-    return {k: v for k, v in zip(fields, row)}
+    return {k: v for k, v in zip(fields, row, strict=False)}
 
 
 def get_schema_version(database: str = DATABASE_FILE.as_posix()) -> int:
@@ -134,9 +135,9 @@ def run_migrations(database: str = DATABASE_FILE.as_posix()):
 
             con.commit()
 
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise e
+            raise
 
 
 def init_new_db(database: str = DATABASE_FILE.as_posix()):
@@ -616,9 +617,9 @@ def init_new_db(database: str = DATABASE_FILE.as_posix()):
             # con.executescript(indexes_creation_str)
             run_migrations(database)
             # Don't run migrations on brand new database - it's already at current version
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise e
+            raise
 
 
 # Audit Tables
@@ -713,9 +714,9 @@ def create_new_board_db(
 
             con.commit()
             return created_board
-        except sqlite3.Error as e:
-            raise e
+        except sqlite3.Error:
             con.rollback()
+            raise
 
 
 def create_new_task_db(
@@ -787,9 +788,9 @@ def create_new_task_db(
             new_task = con.execute(transaction_str, task_dict).fetchone()
             con.commit()
             return new_task
-        except sqlite3.Error as e:
-            raise e
+        except sqlite3.Error:
             con.rollback()
+            raise
 
 
 def create_new_column_db(
@@ -832,9 +833,9 @@ def create_new_column_db(
             new_column = con.execute(transaction_str_cols, column_dict).fetchone()
             con.commit()
             return new_column
-        except sqlite3.Error as e:
-            raise e
+        except sqlite3.Error:
             con.rollback()
+            raise
 
 
 def create_new_category_db(
@@ -861,9 +862,9 @@ def create_new_category_db(
             new_category = con.execute(transaction_str_cols, category_dict).fetchone()
             con.commit()
             return new_category
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise e
+            raise
 
 
 def update_category_entry_db(
@@ -896,9 +897,9 @@ def update_category_entry_db(
             ).fetchone()
             con.commit()
             return updated_category
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise e
+            raise
 
 
 def delete_category_db(
@@ -923,9 +924,9 @@ def delete_category_db(
 
             con.commit()
             return 0
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise e
+            raise
 
 
 def get_all_tasks_on_board_db(
@@ -963,9 +964,9 @@ def get_all_tasks_on_board_db(
             tasks = con.execute(query_str, board_id_dict).fetchall()
             con.commit()
             return tasks
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise e
+            raise
 
 
 def get_all_columns_on_board_db(
@@ -987,9 +988,9 @@ def get_all_columns_on_board_db(
             columns = con.execute(query_str, board_id_dict).fetchall()
             con.commit()
             return columns
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise Exception(e)
+            raise
 
 
 def update_status_update_columns_db(
@@ -1013,9 +1014,9 @@ def update_status_update_columns_db(
             con.execute(transaction_str, update_dict)
             con.commit()
             return 0
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise e
+            raise
 
 
 def init_first_board(database: str = DATABASE_FILE.as_posix()) -> None:
@@ -1043,9 +1044,9 @@ def get_all_boards_db(
             boards = con.execute(query_str).fetchall()
             con.commit()
             return boards
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise (e)
+            raise
 
 
 def get_all_categories_db(
@@ -1062,9 +1063,9 @@ def get_all_categories_db(
             categories = con.execute(query_str).fetchall()
             con.commit()
             return categories
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise (e)
+            raise
 
 
 def get_category_by_id_db(
@@ -1085,9 +1086,9 @@ def get_category_by_id_db(
             category = con.execute(query_str, category_id_dict).fetchone()
             con.commit()
             return category
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise (e)
+            raise
 
 
 def get_task_by_id_db(
@@ -1121,9 +1122,9 @@ def get_task_by_id_db(
             task = con.execute(query_str, task_id_dict).fetchone()
             con.commit()
             return task
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise (e)
+            raise
 
 
 def get_tasks_by_ids_db(
@@ -1174,9 +1175,9 @@ def get_tasks_by_ids_db(
             # Create a mapping for fast lookup and preserve order
             task_map = {task.task_id: task for task in tasks}
             return [task_map[task_id] for task_id in task_ids if task_id in task_map]
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise (e)
+            raise
 
 
 def get_task_by_column_db(
@@ -1211,9 +1212,9 @@ def get_task_by_column_db(
             task = con.execute(query_str, column_id_dict).fetchall()
             con.commit()
             return task
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise (e)
+            raise
 
 
 def get_column_by_id_db(
@@ -1234,9 +1235,9 @@ def get_column_by_id_db(
             column = con.execute(query_str, column_id_dict).fetchone()
             con.commit()
             return column
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise (e)
+            raise
 
 
 # After column Movement
@@ -1334,9 +1335,9 @@ def update_task_status_db(
             moved_task = con.execute(transaction_str, update_task_dict).fetchone()
             con.commit()
             return moved_task
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise e
+            raise
 
 
 def move_task_position_db(
@@ -1450,9 +1451,9 @@ def move_task_position_db(
             moved_task = con.execute(query_str, {"task_id": task_id}).fetchone()
             con.commit()
             return moved_task
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise e
+            raise
 
 
 def update_column_visibility_db(
@@ -1479,9 +1480,9 @@ def update_column_visibility_db(
             con.execute(transaction_str, update_column_dict)
             con.commit()
             return 0
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise e
+            raise
 
 
 def switch_column_positions_db(
@@ -1522,9 +1523,9 @@ def switch_column_positions_db(
             con.execute(new_position_transaction_str, update_column_position_dict)
             con.commit()
             return 0
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise e
+            raise
 
 
 def update_column_name_db(
@@ -1547,9 +1548,9 @@ def update_column_name_db(
             con.execute(transaction_str, update_column_name_dict)
             con.commit()
             return 0
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise e
+            raise
 
 
 # After Editing
@@ -1622,9 +1623,9 @@ def update_task_entry_db(
             updated_task = con.execute(query_str, {"task_id": task_id}).fetchone()
             con.commit()
             return updated_task
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise e
+            raise
 
 
 def delete_column_db(
@@ -1659,9 +1660,9 @@ def delete_column_db(
             con.execute(update_other_positions_str, parameter_dict)
             con.commit()
             return deleted_column
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise e
+            raise
 
 
 def delete_task_db(task_id: int, database: str = DATABASE_FILE.as_posix()) -> int | str:
@@ -1696,9 +1697,9 @@ def delete_task_db(task_id: int, database: str = DATABASE_FILE.as_posix()) -> in
             con.execute(close_gap_str, (old_column, old_position))
             con.commit()
             return 0
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise e
+            raise
 
 
 # For Plotting
@@ -1722,9 +1723,9 @@ def get_ordered_tasks_db(
             tasks = con.execute(query_str).fetchall()
             con.commit()
             return [dict(task) for task in tasks]
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise e
+            raise
 
 
 # Boards Stuff
@@ -1755,9 +1756,9 @@ def update_board_entry_db(
             con.execute(transaction_str, update_board_dict)
             con.commit()
             return 0
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise e
+            raise
 
 
 def delete_board_db(board_id: int, database: str = DATABASE_FILE.as_posix()) -> int:
@@ -1791,9 +1792,9 @@ def delete_board_db(board_id: int, database: str = DATABASE_FILE.as_posix()) -> 
             con.execute(delete_board_str, (board_id,))
             con.commit()
             return 0
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise e
+            raise
 
 
 def get_board_info_dict(
@@ -1817,9 +1818,9 @@ def get_board_info_dict(
             board_infos = con.execute(query_str).fetchall()
             con.commit()
             return board_infos
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise Exception(e)
+            raise
 
 
 def get_filtered_events_db(
@@ -1857,9 +1858,9 @@ def get_filtered_events_db(
             events = con.execute(query_str, params).fetchall()
             con.commit()
             return events
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise Exception(e)
+            raise
 
 
 # Task Dependencies Management
@@ -1898,9 +1899,9 @@ def create_task_dependency_db(
             result = con.execute(transaction_str, dependency_dict).fetchone()
             con.commit()
             return result[0]
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise e
+            raise
 
 
 def delete_task_dependency_db(
@@ -1924,9 +1925,9 @@ def delete_task_dependency_db(
             con.execute(delete_str, dependency_dict)
             con.commit()
             return 0
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise e
+            raise
 
 
 def get_task_dependencies_db(
@@ -1948,9 +1949,9 @@ def get_task_dependencies_db(
             results = con.execute(query_str, task_id_dict).fetchall()
             con.commit()
             return [row[0] for row in results]
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             con.rollback()
-            raise e
+            raise
 
 
 def would_create_cycle(

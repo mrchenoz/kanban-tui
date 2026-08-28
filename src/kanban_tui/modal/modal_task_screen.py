@@ -1,28 +1,29 @@
-from typing import Any, Iterable, TYPE_CHECKING
+from collections.abc import Iterable
 from datetime import datetime
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from kanban_tui.app import KanbanTui
 
 from textual import on
-from textual.events import Mount
-from textual.widget import Widget
 from textual.binding import Binding
-from textual.screen import ModalScreen
-from textual.widgets import Input, TextArea, Button, Select, Label, Switch, Footer
 from textual.containers import Vertical, VerticalScroll
+from textual.events import Mount
+from textual.screen import ModalScreen
+from textual.widget import Widget
+from textual.widgets import Button, Footer, Input, Label, Select, Switch, TextArea
 
-from kanban_tui.textual_datepicker import DateSelect
 from kanban_tui.classes.task import Task
+from kanban_tui.textual_datepicker import DateSelect
+from kanban_tui.widgets.custom_widgets import ButtonRow
 from kanban_tui.widgets.modal_task_widgets import (
+    CategorySelector,
     TaskAdditionalInfos,
+    TaskDependencyManager,
+    TaskDescription,
     TaskDueDateSelector,
     TaskTitleInput,
-    CategorySelector,
-    TaskDescription,
-    TaskDependencyManager,
 )
-from kanban_tui.widgets.custom_widgets import ButtonRow
 
 
 class ModalTaskEditScreen(ModalScreen[Task | None]):

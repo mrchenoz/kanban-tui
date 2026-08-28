@@ -2,46 +2,49 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from kanban_tui.backends.base import Backend
-from kanban_tui.classes.board import Board
-from kanban_tui.classes.category import Category
-from kanban_tui.classes.column import Column
-from kanban_tui.classes.task import Task
-from kanban_tui.classes.logevent import LogEvent
-from kanban_tui.config import SqliteBackendSettings, TaskAppendModes
 from kanban_tui.backends.sqlite.database import (
     create_new_board_db,
     create_new_category_db,
     create_new_column_db,
     create_new_task_db,
+    create_task_dependency_db,
     delete_board_db,
     delete_category_db,
     delete_column_db,
     delete_task_db,
+    delete_task_dependency_db,
     get_all_boards_db,
     get_all_categories_db,
-    get_all_tasks_on_board_db,
     get_all_columns_on_board_db,
+    get_all_tasks_on_board_db,
+    get_board_info_dict,
     get_category_by_id_db,
-    get_task_by_id_db,
-    get_tasks_by_ids_db,
-    get_task_by_column_db,
     get_column_by_id_db,
+    get_filtered_events_db,
+    get_ordered_tasks_db,
+    get_task_by_column_db,
+    get_task_by_id_db,
+    get_task_dependencies_db,
+    get_tasks_by_ids_db,
     init_new_db,
+    move_task_position_db,
     update_board_entry_db,
-    update_column_name_db,
     update_category_entry_db,
+    update_column_name_db,
     update_column_visibility_db,
     update_task_entry_db,
     update_task_status_db,
-    move_task_position_db,
-    get_board_info_dict,
-    get_ordered_tasks_db,
-    get_filtered_events_db,
-    create_task_dependency_db,
-    delete_task_dependency_db,
     would_create_cycle,
-    get_task_dependencies_db,
 )
+from kanban_tui.classes.board import Board
+from kanban_tui.classes.category import Category
+from kanban_tui.classes.column import Column
+from kanban_tui.classes.logevent import LogEvent
+from kanban_tui.classes.task import Task
+from kanban_tui.config import SqliteBackendSettings, TaskAppendModes
+
+
+class NoBoardException(Exception): ...
 
 
 @dataclass
@@ -262,7 +265,7 @@ class SqliteBackend(Backend):
         for board in self.get_boards():
             if board.board_id == self.settings.active_board_id:
                 return board
-        raise Exception("No active Board Found")
+        raise NoBoardException("No active Board Found")
 
     @property
     def database_path(self) -> str:

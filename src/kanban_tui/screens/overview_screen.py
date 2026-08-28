@@ -1,13 +1,13 @@
-from typing import Iterable
+from collections.abc import Iterable
 
 from textual import on
+from textual.events import ScreenResume
+from textual.screen import Screen
 from textual.widget import Widget
 from textual.widgets import Header
-from textual.screen import Screen
-from textual.events import ScreenResume
 
-from kanban_tui.widgets.overview_widgets import OverView
 from kanban_tui.widgets.custom_widgets import KanbanTuiFooter
+from kanban_tui.widgets.overview_widgets import OverView
 
 
 class OverViewScreen(Screen):
