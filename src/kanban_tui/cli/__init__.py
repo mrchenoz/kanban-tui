@@ -97,8 +97,10 @@ def cli(ctx: click.Context, web: bool):
     else:
         if ctx.invoked_subcommand is None:
             app = KanbanTui(
-                config_path=CONFIG_FILE.as_posix(),
-                database_path=DATABASE_FILE.as_posix(),
+                config_path=os.getenv("KANBAN_TUI_CONFIG_FILE", CONFIG_FILE.as_posix()),
+                database_path=os.getenv(
+                    "KANBAN_TUI_DATABASE_FILE", DATABASE_FILE.as_posix()
+                ),
             )
             app.run()
         elif ctx.invoked_subcommand == "demo":
