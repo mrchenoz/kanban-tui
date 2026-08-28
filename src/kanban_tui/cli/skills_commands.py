@@ -2,14 +2,14 @@ from pathlib import Path
 
 import click
 
-from kanban_tui.utils import print_to_console
 from kanban_tui.skills import (
-    get_skill_md,
-    get_skill_local_path,
     get_skill_global_path,
+    get_skill_local_path,
+    get_skill_md,
     get_skill_md_version,
     get_version,
 )
+from kanban_tui.utils import print_to_console
 
 
 @click.group()
@@ -114,7 +114,7 @@ def update_skill():
         if click.confirm(
             f"Do you want to update the {confirm_str} to the current tool version?"
         ):
-            for locality in file_version_dict.keys():
+            for locality in file_version_dict:
                 file_path = file_path_dict[locality]
                 file_path.write_text(get_skill_md(), encoding="utf-8")
                 print_to_console(

@@ -1,23 +1,25 @@
 from __future__ import annotations
-from typing import Iterable, TYPE_CHECKING
+
+from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from kanban_tui.app import KanbanTui
 
 from rich.text import Text
 from textual import on
-from textual.reactive import reactive
 from textual.binding import Binding
-from textual.widget import Widget
-from textual.widgets import ListView, ListItem, Label, Rule, Button, Input
 from textual.containers import Horizontal, VerticalScroll
+from textual.reactive import reactive
+from textual.widget import Widget
+from textual.widgets import Button, Input, Label, ListItem, ListView, Rule
 
 from kanban_tui.classes.board import Board
 from kanban_tui.utils import get_days_left_till_due
 
 
 class BoardList(ListView):
-    app: "KanbanTui"
+    app: KanbanTui
 
     BINDINGS = [
         Binding(key="j", action="cursor_down", show=False),
@@ -57,7 +59,7 @@ class BoardList(ListView):
 
 
 class BoardListItem(ListItem):
-    app: "KanbanTui"
+    app: KanbanTui
 
     def __init__(self, board: Board, info_dict: dict) -> None:
         self.board = board
@@ -90,7 +92,7 @@ class BoardListItem(ListItem):
 
 
 class CustomColumnList(VerticalScroll):
-    app: "KanbanTui"
+    app: KanbanTui
     can_focus = False
 
     async def on_mount(self):

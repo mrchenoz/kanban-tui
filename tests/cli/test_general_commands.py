@@ -1,9 +1,9 @@
-from kanban_tui.config import Backends
 from pathlib import Path
 
 from click.testing import CliRunner
 
 from kanban_tui.cli import cli
+from kanban_tui.config import Backends
 
 CLEAR_OUTPUT = """Are you sure you want to delete the db and config? [y/N]: y
 Config under TEST_CONFIG_PATH deleted successfully.

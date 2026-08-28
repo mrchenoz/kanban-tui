@@ -1,29 +1,27 @@
 """CLI entry-point for kanban-tui"""
 
-import sys
-
 import os
+import sys
 from collections import OrderedDict
-
-from kanban_tui.cli.column_commands import column
-from kanban_tui.cli.task_commands import task
-from kanban_tui.cli.category_commands import category
 
 import click
 
 from kanban_tui.app import KanbanTui
 from kanban_tui.cli.board_commands import board
+from kanban_tui.cli.category_commands import category
+from kanban_tui.cli.column_commands import column
 from kanban_tui.cli.demo_commands import demo
-from kanban_tui.cli.skills_commands import skill
+from kanban_tui.cli.general_commands import auth, clear, info
 from kanban_tui.cli.mcp_commands import mcp
-from kanban_tui.cli.general_commands import info, clear, auth
-from kanban_tui.utils import print_to_console
+from kanban_tui.cli.skills_commands import skill
+from kanban_tui.cli.task_commands import task
 from kanban_tui.constants import (
     CONFIG_FILE,
     DATABASE_FILE,
     DEMO_CONFIG_FILE,
     DEMO_DATABASE_FILE,
 )
+from kanban_tui.utils import print_to_console
 
 COMMAND_DICT = {
     "General Commands": [
@@ -48,7 +46,7 @@ COMMAND_DICT = {
 # Enables Custom Help Interface
 class OrderedGroup(click.Group):
     def __init__(self, name=None, commands=None, **attrs):
-        super(OrderedGroup, self).__init__(name, commands, **attrs)
+        super().__init__(name, commands, **attrs)
         self.commands = commands or OrderedDict()
 
     def list_commands(self, ctx):

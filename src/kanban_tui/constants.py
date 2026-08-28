@@ -2,7 +2,6 @@ from pathlib import Path
 
 from xdg_base_dirs import xdg_config_home, xdg_data_home
 
-
 DEFAULT_COLUMN_DICT = {"Ready": True, "Doing": True, "Done": True, "Archive": False}
 
 

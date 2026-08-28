@@ -4,12 +4,12 @@ import calendar
 from datetime import datetime
 
 from textual.app import ComposeResult
-from textual.widget import Widget, RenderableType, events
-from textual.widgets import Static, Button
-from textual.containers import Vertical, Horizontal
-from textual.reactive import reactive
+from textual.containers import Horizontal, Vertical
 from textual.css.query import NoMatches
 from textual.message import Message
+from textual.reactive import reactive
+from textual.widget import RenderableType, Widget, events
+from textual.widgets import Button, Static
 
 # from textual import log
 
@@ -101,10 +101,7 @@ class DayLabel(Widget):
         return None
 
     def render(self) -> RenderableType:
-        if int(self.label) == 0:
-            output = "  "
-        else:
-            output = f"{self.label:>2}"
+        output = "  " if int(self.label) == 0 else f"{self.label:>2}"
 
         return output
 
@@ -332,9 +329,7 @@ class DatePicker(Widget):
 
         nudging = False
 
-        if focused_day.day == 1:
-            nudging = True
-        elif self.focused % 7 == 0:
+        if focused_day.day == 1 or self.focused % 7 == 0:
             nudging = True
 
         if nudging:
@@ -354,12 +349,14 @@ class DatePicker(Widget):
 
         if self.focused % 7 == 6:
             nudging = True
-        elif focused_day.day >= 28:
+        elif (
+            focused_day.day >= 28
+            and self.day_container.children[self.focused + 1].day is None
+        ):
             # 28 could be last day of month, check for an empty day at next index.
             # index can't be out of range because there is always an empty day
             # at the right
-            if self.day_container.children[self.focused + 1].day is None:
-                nudging = True
+            nudging = True
 
         if nudging:
             self._next_month()
@@ -441,10 +438,7 @@ class DatePicker(Widget):
         for idx in range(42):
             # 42: 6 rows with 7 days
             if idx < len(days):
-                if today_day == days[idx]:
-                    classes = "--today"
-                else:
-                    classes = ""
+                classes = "--today" if today_day == days[idx] else ""
                 day_widgets.append(DayLabel(days[idx], classes=classes))
             else:
                 day_widgets.append(DayLabel(0))

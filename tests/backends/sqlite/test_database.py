@@ -4,29 +4,29 @@ from pathlib import Path
 import pytest
 
 from kanban_tui.backends.sqlite.database import (
-    create_new_category_db,
-    create_new_task_db,
-    get_all_categories_db,
-    get_category_by_id_db,
-    get_all_columns_on_board_db,
-    init_new_db,
-    create_connection,
-    task_factory,
     board_factory,
-    logevent_factory,
     board_info_factory,
     column_factory,
+    create_connection,
     create_new_board_db,
+    create_new_category_db,
+    create_new_task_db,
     get_all_boards_db,
+    get_all_categories_db,
+    get_all_columns_on_board_db,
+    get_category_by_id_db,
     get_task_by_column_db,
+    init_new_db,
+    logevent_factory,
     move_task_position_db,
+    task_factory,
     update_task_status_db,
 )
-from kanban_tui.config import TaskAppendModes
-from kanban_tui.classes.task import Task
-from kanban_tui.classes.column import Column
 from kanban_tui.classes.board import Board
+from kanban_tui.classes.column import Column
 from kanban_tui.classes.logevent import LogEvent
+from kanban_tui.classes.task import Task
+from kanban_tui.config import TaskAppendModes
 
 
 async def test_init_new_db(test_database_path):
@@ -35,14 +35,16 @@ async def test_init_new_db(test_database_path):
     assert Path(test_database_path).exists()
     assert init_new_db(database=test_database_path) is None
 
-    with pytest.raises(sqlite3.OperationalError):
-        with create_connection(database=test_database_path) as con:
-            try:
-                con.execute("CREATE TABLE tasks(test_id );")
-            except Exception as e:
-                con.rollback()
-                con.close()
-                raise e
+    with (
+        pytest.raises(sqlite3.OperationalError),
+        create_connection(database=test_database_path) as con,
+    ):
+        try:
+            con.execute("CREATE TABLE tasks(test_id );")
+        except Exception:
+            con.rollback()
+            con.close()
+            raise
 
 
 def test_task_factory(test_app, test_database_path):
@@ -102,7 +104,7 @@ def test_board_info_factory(test_app, test_database_path):
 
 
 def test_create_new_board_db(test_app, test_database_path):
-    for name, icon in zip(["TestDB1", "TestDB2"], [":Icon1:", ":Icon2:"]):
+    for name, icon in zip(["TestDB1", "TestDB2"], [":Icon1:", ":Icon2:"], strict=False):
         create_new_board_db(name=name, icon=icon, database=test_database_path)
 
     boards = get_all_boards_db(database=test_database_path)
@@ -110,7 +112,7 @@ def test_create_new_board_db(test_app, test_database_path):
 
 
 def test_create_new_category_db(no_task_app, test_database_path):
-    for name, color in zip(["green", "red"], ["#00FF00", "#FF0000"]):
+    for name, color in zip(["green", "red"], ["#00FF00", "#FF0000"], strict=False):
         create_new_category_db(name=name, color=color, database=test_database_path)
 
     categories = get_all_categories_db(database=test_database_path)
@@ -148,7 +150,7 @@ def test_create_board_sets_default_status_columns(test_database_path):
 
     # Verify they point to the correct columns (Ready, Doing, Done)
     boards = get_all_boards_db(database=test_database_path)
-    created_board = [b for b in boards if b.board_id == new_board.board_id][0]
+    created_board = next(b for b in boards if b.board_id == new_board.board_id)
 
     assert created_board.reset_column == new_board.reset_column
     assert created_board.start_column == new_board.start_column

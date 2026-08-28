@@ -1,10 +1,11 @@
 import json
 from pathlib import Path
+
 import pytest
 
 from kanban_tui.app import KanbanTui
 from kanban_tui.backends.claude.backend import ClaudeBackend
-from kanban_tui.config import ClaudeBackendSettings, Backends
+from kanban_tui.config import Backends, ClaudeBackendSettings
 
 
 @pytest.fixture

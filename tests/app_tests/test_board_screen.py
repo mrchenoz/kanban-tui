@@ -1,18 +1,17 @@
 import sys
 
 import pytest
+from textual.widgets import Button, Input, Label
 
 from kanban_tui.app import KanbanTui
-from textual.widgets import Input, Button, Label
 from kanban_tui.config import Backends, MovementModes
-from kanban_tui.screens.board_screen import BoardScreen
-from kanban_tui.widgets.board_widgets import KanbanBoard
-from kanban_tui.modal.modal_task_screen import ModalTaskEditScreen
 from kanban_tui.modal.modal_board_screen import (
     ModalBoardOverviewScreen,
     ModalNewBoardScreen,
 )
-
+from kanban_tui.modal.modal_task_screen import ModalTaskEditScreen
+from kanban_tui.screens.board_screen import BoardScreen
+from kanban_tui.widgets.board_widgets import KanbanBoard
 from kanban_tui.widgets.modal_task_widgets import VimSelect
 from kanban_tui.widgets.task_card import TaskCard
 from kanban_tui.widgets.task_column import Column

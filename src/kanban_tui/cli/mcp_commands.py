@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import signal
 import sys
 
@@ -25,7 +26,7 @@ def mcp(app: KanbanTui, ctx, start_server: bool):
     """
     try:
         from mcp.server.stdio import stdio_server
-        from pycli_mcp import CommandQuery, CommandMCPServer
+        from pycli_mcp import CommandMCPServer, CommandQuery
     except ImportError:
         print_to_console(
             "Please install [yellow]kanban-tui\\[mcp][/] to use kanban-tui as an mcp server."
@@ -78,17 +79,15 @@ def mcp(app: KanbanTui, ctx, start_server: bool):
                 shutdown_task = asyncio.create_task(shutdown_event.wait())
 
                 # Wait for either the server to complete or shutdown signal
-                done, pending = await asyncio.wait(
+                _done, pending = await asyncio.wait(
                     {server_task, shutdown_task}, return_when=asyncio.FIRST_COMPLETED
                 )
 
                 # Cancel any pending tasks
                 for task in pending:
                     task.cancel()
-                    try:
+                    with contextlib.suppress(asyncio.CancelledError):
                         await task
-                    except asyncio.CancelledError:
-                        pass
 
         except Exception as e:
             print_to_console(f"[red]MCP server error: {e}[/]")

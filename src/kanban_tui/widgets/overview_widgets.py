@@ -1,7 +1,7 @@
 import datetime
-from typing import Iterable, TYPE_CHECKING
 from collections import Counter
-
+from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from kanban_tui.app import KanbanTui
@@ -9,23 +9,23 @@ if TYPE_CHECKING:
 from rich.text import Text
 from textual import on
 from textual.binding import Binding
+from textual.containers import Horizontal, HorizontalScroll, Vertical
+from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import (
+    Button,
     DataTable,
     Label,
-    Switch,
-    Button,
     Select,
+    Switch,
     TabbedContent,
     TabPane,
 )
-from textual.reactive import reactive
-from textual.containers import Horizontal, HorizontalScroll, Vertical
 from textual.widgets._select import SelectOverlay
 from textual_plotext import PlotextPlot
 
-from kanban_tui.utils import getrgb, get_time_range
 from kanban_tui.classes.logevent import LogEvent
+from kanban_tui.utils import get_time_range, getrgb
 from kanban_tui.widgets.modal_task_widgets import VimSelect
 
 
@@ -85,7 +85,7 @@ class TaskPlot(HorizontalScroll):
         if switch_categories:
             category_value_dict = {}
 
-            for category in set(task.category for task in self.app.task_list):
+            for category in {task.category for task in self.app.task_list}:
                 category_value_dict[category] = plot_values.copy()
 
                 task_counter = Counter(
@@ -364,7 +364,7 @@ class LogTable(Vertical):
         for event in self.events:
             event_dict = event.__dict__
             self.query_one(DataTable).add_row(
-                *list(event_dict.values())[1:], label=list(event_dict.values())[0]
+                *list(event_dict.values())[1:], label=next(iter(event_dict.values()))
             )
 
         self.query_one(DataTable).move_cursor(row=len(self.events))
@@ -415,7 +415,7 @@ class OverViewPlot(Vertical):
             switch_categories=category_switch,
             select_amount=amount_select,
             select_frequency=frequency_select,
-            scroll_reset=False if isinstance(event, Switch.Changed) else True,
+            scroll_reset=not isinstance(event, Switch.Changed),
         )
 
     def action_scroll_plot_right(self) -> None:

@@ -1,6 +1,7 @@
 from __future__ import annotations
-import os
+
 import json
+import os
 import shutil
 from dataclasses import dataclass
 from datetime import datetime
@@ -13,6 +14,9 @@ from kanban_tui.classes.category import Category
 from kanban_tui.classes.column import Column
 from kanban_tui.classes.task import Task
 from kanban_tui.config import ClaudeBackendSettings
+
+
+class NoSessionException(Exception): ...
 
 
 @dataclass
@@ -80,7 +84,7 @@ class ClaudeBackend(Backend):
         """Get the currently active board based on settings."""
         boards = self.get_boards()
         if not boards:
-            raise Exception("No Claude task sessions found")
+            raise NoSessionException("No Claude task sessions found")
 
         # If active_session_id is set, find that board
         if self.settings.active_session_id:
@@ -115,7 +119,7 @@ class ClaudeBackend(Backend):
         try:
             with open(task_file, "r") as f:
                 return json.load(f)
-        except (json.JSONDecodeError, IOError):
+        except (OSError, json.JSONDecodeError):
             return None
 
     def _claude_task_to_kanban(

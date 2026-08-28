@@ -1,44 +1,45 @@
 from __future__ import annotations
-from typing import Iterable, TYPE_CHECKING, Literal
 
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
     from kanban_tui.app import KanbanTui
 
+from rich.text import Text
 from textual import on, work
-from textual.message import Message
-from textual.events import DescendantBlur
-from textual.reactive import reactive
 from textual.binding import Binding
+from textual.containers import Horizontal, Vertical, VerticalGroup
+from textual.events import DescendantBlur
+from textual.message import Message
+from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import (
+    Button,
+    Input,
     Label,
+    ListItem,
+    ListView,
+    Rule,
     Select,
     Switch,
-    Input,
-    Rule,
-    Button,
-    ListView,
-    ListItem,
 )
-from textual.containers import Horizontal, Vertical, VerticalGroup
-from rich.text import Text
 
-from kanban_tui.config import MovementModes, TaskAppendModes
-from kanban_tui.widgets.modal_task_widgets import VimSelect
-from kanban_tui.widgets.custom_widgets import IconButton
-from kanban_tui.modal.modal_category_screen import IsValidColor
-from kanban_tui.modal.modal_settings import ModalUpdateColumnScreen
-from kanban_tui.modal.modal_confirm_screen import ModalConfirmScreen
-from kanban_tui.classes.column import Column
 from kanban_tui.backends.sqlite.database import (
     switch_column_positions_db,
     update_status_update_columns_db,
 )
+from kanban_tui.classes.column import Column
+from kanban_tui.config import MovementModes, TaskAppendModes
+from kanban_tui.modal.modal_category_screen import IsValidColor
+from kanban_tui.modal.modal_confirm_screen import ModalConfirmScreen
+from kanban_tui.modal.modal_settings import ModalUpdateColumnScreen
+from kanban_tui.widgets.custom_widgets import IconButton
+from kanban_tui.widgets.modal_task_widgets import VimSelect
 
 
 class DataBasePathInput(Horizontal):
-    app: "KanbanTui"
+    app: KanbanTui
 
     def on_mount(self):
         self.border_title = "database.database_path"
@@ -55,7 +56,7 @@ class DataBasePathInput(Horizontal):
 
 
 class TaskMovementSelector(Horizontal):
-    app: "KanbanTui"
+    app: KanbanTui
 
     def on_mount(self):
         self.border_title = "task.movement_mode"
@@ -78,7 +79,7 @@ class TaskMovementSelector(Horizontal):
 
 
 class TaskAppendModeSelector(Horizontal):
-    app: "KanbanTui"
+    app: KanbanTui
 
     def on_mount(self):
         self.border_title = "task.append_mode"
@@ -104,7 +105,7 @@ class TaskAppendModeSelector(Horizontal):
 
 
 class BoardColumnsInView(Horizontal):
-    app: "KanbanTui"
+    app: KanbanTui
 
     def on_mount(self):
         self.border_title = "board.columns_in_view"
@@ -137,7 +138,7 @@ class BoardColumnsInView(Horizontal):
 
 
 class BoardAutoRefreshSelector(Horizontal):
-    app: "KanbanTui"
+    app: KanbanTui
     OPTIONS = [
         ("Off", 0),
         ("15s", 15),
@@ -168,7 +169,7 @@ class BoardAutoRefreshSelector(Horizontal):
 
 
 class TaskAlwaysExpandedSwitch(Horizontal):
-    app: "KanbanTui"
+    app: KanbanTui
 
     def on_mount(self):
         self.border_title = "task.always_expanded"
@@ -187,7 +188,7 @@ class TaskAlwaysExpandedSwitch(Horizontal):
 
 
 class TaskMetadataAlwaysExpandedSwitch(Horizontal):
-    app: "KanbanTui"
+    app: KanbanTui
 
     def on_mount(self):
         self.border_title = "task.metadata_always_expanded"
@@ -207,7 +208,7 @@ class TaskMetadataAlwaysExpandedSwitch(Horizontal):
 
 
 class TaskDefaultColorSelector(Horizontal):
-    app: "KanbanTui"
+    app: KanbanTui
 
     def compose(self) -> Iterable[Widget]:
         yield Label("Default Task Color")
@@ -269,7 +270,7 @@ class RepositionButton(Button): ...
 
 
 class ColumnListItem(ListItem):
-    app: "KanbanTui"
+    app: KanbanTui
     column_visible: reactive[bool] = reactive(True, init=False)
 
     class Triggered(Message):
@@ -345,7 +346,7 @@ class ColumnListItem(ListItem):
 
 
 class FirstListItem(ListItem):
-    app: "KanbanTui"
+    app: KanbanTui
 
     def __init__(self) -> None:
         super().__init__(id="listitem_column_0")
@@ -359,7 +360,7 @@ class FirstListItem(ListItem):
 class ColumnSelector(ListView):
     """Widget to add/delete/rename columns and change the column visibility"""
 
-    app: "KanbanTui"
+    app: KanbanTui
     jump_mode = "focus"
 
     BINDINGS = [
@@ -392,7 +393,7 @@ class ColumnSelector(ListView):
         children = [FirstListItem()] + [
             ColumnListItem(column=column) for column in self.app.column_list
         ]
-        super().__init__(*children, id="column_list", initial_index=0, *args, **kwargs)
+        super().__init__(*children, *args, id="column_list", initial_index=0, **kwargs)
 
     # Actions
     def action_cursor_down(self) -> None:
@@ -604,7 +605,7 @@ class ColumnSelector(ListView):
 
 
 class StatusColumnSelector(Vertical):
-    app: "KanbanTui"
+    app: KanbanTui
     """Widget to select the columns, which are used to update the start/finish dates on tasks"""
 
     async def on_mount(self):
@@ -687,30 +688,34 @@ class StatusColumnSelector(Vertical):
         # Get valid column IDs
         valid_column_ids = yield {col.column_id for col in self.app.column_list}
 
-        if self.app.active_board.reset_column is not None:
-            # Only set if the column still exists
-            if self.app.active_board.reset_column in valid_column_ids:
-                self.query_exactly_one(
-                    "#select_reset", Select
-                ).value = self.app.active_board.reset_column
+        # Only set if the column still exists
+        if (
+            self.app.active_board.reset_column is not None
+            and self.app.active_board.reset_column in valid_column_ids
+        ):
+            self.query_exactly_one(
+                "#select_reset", Select
+            ).value = self.app.active_board.reset_column
 
-        if self.app.active_board.start_column is not None:
-            # Only set if the column still exists
-            if self.app.active_board.start_column in valid_column_ids:
-                self.query_exactly_one(
-                    "#select_start", Select
-                ).value = self.app.active_board.start_column
+        if (
+            self.app.active_board.start_column is not None
+            and self.app.active_board.start_column in valid_column_ids
+        ):
+            self.query_exactly_one(
+                "#select_start", Select
+            ).value = self.app.active_board.start_column
 
-        if self.app.active_board.finish_column is not None:
-            # Only set if the column still exists
-            if self.app.active_board.finish_column in valid_column_ids:
-                self.query_exactly_one(
-                    "#select_finish", Select
-                ).value = self.app.active_board.finish_column
+        if (
+            self.app.active_board.finish_column is not None
+            and self.app.active_board.finish_column in valid_column_ids
+        ):
+            self.query_exactly_one(
+                "#select_finish", Select
+            ).value = self.app.active_board.finish_column
 
 
 class SettingsView(Vertical):
-    app: "KanbanTui"
+    app: KanbanTui
 
     def compose(self) -> Iterable[Widget]:
         yield DataBasePathInput(classes="setting-block")

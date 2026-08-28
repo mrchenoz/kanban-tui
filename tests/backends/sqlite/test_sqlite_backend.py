@@ -1,5 +1,5 @@
-from kanban_tui.config import Settings
 from kanban_tui.backends.sqlite.backend import SqliteBackend
+from kanban_tui.config import Settings
 
 
 def test_sqlite_backend(test_config: Settings, test_app):

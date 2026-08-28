@@ -1,16 +1,16 @@
-from typing import Iterable
+from collections.abc import Iterable
 
 from textual import on
 from textual.binding import Binding
 from textual.events import ScreenResume
 from textual.reactive import reactive
-from textual.widget import Widget
-from textual.widgets import Header, Input, Switch, Button, Select
 from textual.screen import Screen
+from textual.widget import Widget
+from textual.widgets import Button, Header, Input, Select, Switch
 from textual_jumper import Jumper
 
-from kanban_tui.widgets.settings_widgets import SettingsView
 from kanban_tui.widgets.custom_widgets import KanbanTuiFooter
+from kanban_tui.widgets.settings_widgets import SettingsView
 
 
 class SettingsScreen(Screen):

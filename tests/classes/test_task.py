@@ -1,5 +1,6 @@
-from kanban_tui.classes.task import Task
 from datetime import datetime, timedelta
+
+from kanban_tui.classes.task import Task
 
 
 def test_Task():
@@ -19,12 +20,12 @@ def test_Task():
     test_task.start_date = datetime.now() - timedelta(days=10)
     assert test_task.finished is False
 
+    test_task.due_date = None
+    assert test_task.get_days_left_till_due() is None
+
     test_task.finish_task()
 
     assert test_task.finished
-
-    test_task.due_date = None
-    test_task.get_days_left_till_due() is None
 
 
 def test_finished_Task():

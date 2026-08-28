@@ -1,23 +1,23 @@
 import pytest
+from textual.widgets import Button, Input, Label, Select, Switch
+
 from kanban_tui.app import KanbanTui
-from textual.widgets import Input, Select, Switch, Button, Label
 from kanban_tui.config import Backends, MovementModes, TaskAppendModes
+from kanban_tui.modal.modal_confirm_screen import ModalConfirmScreen
+from kanban_tui.modal.modal_settings import ModalUpdateColumnScreen
 from kanban_tui.screens.settings_screen import SettingsScreen
 from kanban_tui.widgets.board_widgets import KanbanBoard
-from kanban_tui.widgets.task_card import TaskCard
 from kanban_tui.widgets.settings_widgets import (
-    ColumnSelector,
     AddRule,
+    ColumnSelector,
     DataBasePathInput,
-    TaskAlwaysExpandedSwitch,
     StatusColumnSelector,
+    TaskAlwaysExpandedSwitch,
+    TaskAppendModeSelector,
     TaskDefaultColorSelector,
     TaskMovementSelector,
-    TaskAppendModeSelector,
 )
-from kanban_tui.modal.modal_settings import ModalUpdateColumnScreen
-from kanban_tui.modal.modal_confirm_screen import ModalConfirmScreen
-
+from kanban_tui.widgets.task_card import TaskCard
 
 APP_SIZE = (150, 50)
 

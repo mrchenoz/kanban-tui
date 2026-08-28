@@ -152,7 +152,7 @@ class JiraIssue(BaseModel):
         if not created_str:
             return datetime.now()
         # Jira returns ISO format with timezone
-        return datetime.fromisoformat(created_str.replace("Z", "+00:00"))
+        return datetime.fromisoformat(created_str)
 
     @property
     def updated(self) -> datetime | None:
@@ -160,7 +160,7 @@ class JiraIssue(BaseModel):
         updated_str = self.fields.get("updated")
         if not updated_str:
             return None
-        return datetime.fromisoformat(updated_str.replace("Z", "+00:00"))
+        return datetime.fromisoformat(updated_str)
 
     @property
     def due_date(self) -> datetime | None:
@@ -201,7 +201,7 @@ class JiraIssue(BaseModel):
         resolved_str = self.fields.get("resolutiondate")
         if not resolved_str:
             return None
-        return datetime.fromisoformat(resolved_str.replace("Z", "+00:00"))
+        return datetime.fromisoformat(resolved_str)
 
 
 class JiraProject(BaseModel):

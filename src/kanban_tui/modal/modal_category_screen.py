@@ -1,5 +1,7 @@
 from __future__ import annotations
-from typing import Iterable, TYPE_CHECKING
+
+from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 from rich.text import Text
 from textual.color import Color, ColorParseError
@@ -12,18 +14,18 @@ if TYPE_CHECKING:
 
 from textual import on, work
 from textual.binding import Binding
-from textual.validation import Length, Validator, ValidationResult
+from textual.containers import Horizontal, Vertical
+from textual.screen import ModalScreen
+from textual.validation import Length, ValidationResult, Validator
 from textual.widget import Widget
 from textual.widgets import (
-    Input,
     Button,
-    Label,
-    ListView,
     Footer,
+    Input,
+    Label,
     ListItem,
+    ListView,
 )
-from textual.containers import Vertical, Horizontal
-from textual.screen import ModalScreen
 
 from kanban_tui.modal.modal_confirm_screen import ModalConfirmScreen
 
@@ -31,7 +33,7 @@ from kanban_tui.modal.modal_confirm_screen import ModalConfirmScreen
 
 
 class CategoryList(ListView):
-    app: "KanbanTui"
+    app: KanbanTui
 
     BINDINGS = [
         Binding(key="j", action="cursor_down", show=False),
@@ -60,7 +62,7 @@ class CategoryList(ListView):
 
 
 class CategoryListItem(ListItem):
-    app: "KanbanTui"
+    app: KanbanTui
 
     def __init__(self, category: Category) -> None:
         self.category: Category = category
@@ -83,7 +85,7 @@ class ModalCategoryManageScreen(ModalScreen[int | None]):
         ),
     ]
 
-    app: "KanbanTui"
+    app: KanbanTui
 
     def __init__(self, current_category_id: int | None, *args, **kwargs) -> None:
         self.current_category_id = current_category_id
@@ -215,7 +217,7 @@ class NameInputContainer(Horizontal):
 
 class ModalNewCategoryScreen(ModalScreen[int | None]):
     BINDINGS = [Binding("escape", "app.pop_screen", "Close")]
-    app: "KanbanTui"
+    app: KanbanTui
 
     def __init__(self, category: Category | None = None, *args, **kwargs) -> None:
         self.category = category
@@ -283,7 +285,7 @@ class ModalNewCategoryScreen(ModalScreen[int | None]):
     @on(Input.Changed)
     def check_if_all_input_fields_are_valid(self, event: Input.Changed):
         all_valid = all(
-            [input.is_valid and input.value for input in self.query(Input).results()]
+            input.is_valid and input.value for input in self.query(Input).results()
         )
 
         self.query_exactly_one(

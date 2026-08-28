@@ -3,13 +3,12 @@ from __future__ import annotations
 from datetime import datetime
 
 from textual.app import ComposeResult
-from textual.widget import Widget, events
 from textual.containers import Vertical
-from textual.reactive import reactive
 from textual.css.query import NoMatches
+from textual.reactive import reactive
+from textual.widget import Widget, events
 
 # from textual import log
-
 from . import DatePicker
 
 
@@ -104,13 +103,9 @@ class DateSelect(Widget):
         width = self.content_size.width
         text_space = width - 2
 
-        if text_space < 0:
-            text_space = 0
+        text_space = max(text_space, 0)
 
-        if not self.date:
-            text = self.placeholder
-        else:
-            text = self.date.strftime(self.format)
+        text = self.placeholder if not self.date else self.date.strftime(self.format)
 
         if len(text) > text_space:
             text = text[0:text_space]

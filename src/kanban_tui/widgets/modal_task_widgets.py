@@ -1,11 +1,11 @@
-import subprocess
-from shutil import which
 import os
+import subprocess
 import tempfile
-from pathlib import Path
+from collections.abc import Iterable
 from datetime import datetime
-from typing import Iterable, TYPE_CHECKING
-
+from pathlib import Path
+from shutil import which
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from kanban_tui.app import KanbanTui
@@ -13,24 +13,24 @@ if TYPE_CHECKING:
 from rich.text import Text
 from textual import on
 from textual.binding import Binding
+from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.events import DescendantBlur, DescendantFocus
 from textual.reactive import reactive
-from textual.widget import Widget
 from textual.validation import Length
+from textual.widget import Widget
 from textual.widgets import (
+    DataTable,
     Input,
+    Label,
     Markdown,
     Rule,
-    TextArea,
-    Label,
-    DataTable,
     Switch,
+    TextArea,
 )
-from textual.containers import Horizontal, Vertical, VerticalScroll
 
 from kanban_tui.modal.modal_category_screen import ModalCategoryManageScreen
-from kanban_tui.widgets.date_select import CustomDateSelect
 from kanban_tui.widgets.custom_widgets import VimSelect
+from kanban_tui.widgets.date_select import CustomDateSelect
 
 
 class TaskTitleInput(Input):
@@ -131,7 +131,9 @@ class SuspendableTextArea(TextArea):
                 tf.write(self.text)
         try:
             with self.app.suspend():
-                result = subprocess.run(args=[editor, temp_path.as_posix()], text=True)
+                result = subprocess.run(
+                    args=[editor, temp_path.as_posix()], text=True, check=True
+                )
 
             if result.returncode == 0 and temp_path.exists():
                 content = temp_path.read_text(encoding="utf-8")
@@ -244,11 +246,11 @@ class CategorySelector(VimSelect):
     def __init__(self, *args, **kwargs):
         options = self.get_available_categories()
         super().__init__(
+            *args,
             options=options,
             prompt="No Category",
             allow_blank=True,
             type_to_search=False,
-            *args,
             **kwargs,
         )
 
@@ -391,12 +393,12 @@ class DependencySelector(VimSelect):
         self.current_task_id = current_task_id
         options = self.get_available_tasks()
         super().__init__(
+            *args,
             options=options,
             prompt="Select task to add as dependency",
             allow_blank=True,
             type_to_search=True,
             id="dependency_selector",
-            *args,
             **kwargs,
         )
 

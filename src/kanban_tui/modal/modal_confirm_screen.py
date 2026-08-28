@@ -1,11 +1,11 @@
-from typing import Iterable
+from collections.abc import Iterable
 
 from textual import on
-from textual.screen import ModalScreen
 from textual.binding import Binding
 from textual.containers import Vertical
-from textual.widgets import Button, Label
+from textual.screen import ModalScreen
 from textual.widget import Widget
+from textual.widgets import Button, Label
 
 from kanban_tui.widgets.custom_widgets import ButtonRow
 

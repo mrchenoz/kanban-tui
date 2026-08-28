@@ -1,7 +1,8 @@
-import pytest
 from datetime import datetime
-from freezegun import freeze_time
+
+import pytest
 from click.testing import CliRunner
+from freezegun import freeze_time
 
 from kanban_tui.cli import cli
 from kanban_tui.config import Backends
@@ -1063,42 +1064,44 @@ Task 7 already depends on task 1.
 def test_task_dependencies_persist_in_json_output(test_app):
     """Test that dependencies appear in JSON output"""
     runner = CliRunner()
-    with freeze_time(datetime(year=2026, month=4, day=2, hour=13, minute=3, second=7)):
-        with runner.isolated_filesystem():
-            # Create a task with dependencies
-            runner.invoke(
-                cli,
-                args=[
-                    "task",
-                    "create",
-                    "Dependent Task",
-                    "--depends-on",
-                    "1",
-                    "--depends-on",
-                    "2",
-                ],
-                obj=test_app,
-            )
+    with (
+        freeze_time(datetime(year=2026, month=4, day=2, hour=13, minute=3, second=7)),
+        runner.isolated_filesystem(),
+    ):
+        # Create a task with dependencies
+        runner.invoke(
+            cli,
+            args=[
+                "task",
+                "create",
+                "Dependent Task",
+                "--depends-on",
+                "1",
+                "--depends-on",
+                "2",
+            ],
+            obj=test_app,
+        )
 
-            # Get JSON output
-            result = runner.invoke(cli, args=["task", "list", "--json"], obj=test_app)
-            assert result.exit_code == 0
+        # Get JSON output
+        result = runner.invoke(cli, args=["task", "list", "--json"], obj=test_app)
+        assert result.exit_code == 0
 
-            import json
+        import json
 
-            tasks = json.loads(result.output)
+        tasks = json.loads(result.output)
 
-            # Find the newly created task
-            new_task = [t for t in tasks if t["task_id"] == 6][0]
-            assert sorted(new_task["blocked_by"]) == [1, 2]
-            assert new_task["is_blocked"]
-            assert not new_task["has_dependents"]
+        # Find the newly created task
+        new_task = next(t for t in tasks if t["task_id"] == 6)
+        assert sorted(new_task["blocked_by"]) == [1, 2]
+        assert new_task["is_blocked"]
+        assert not new_task["has_dependents"]
 
-            # Check that task 1 shows it's blocking task 6
-            task_1 = [t for t in tasks if t["task_id"] == 1][0]
-            assert 6 in task_1["blocking"]
-            assert task_1["has_dependents"]
-            assert not task_1["is_blocked"]
+        # Check that task 1 shows it's blocking task 6
+        task_1 = next(t for t in tasks if t["task_id"] == 1)
+        assert 6 in task_1["blocking"]
+        assert task_1["has_dependents"]
+        assert not task_1["is_blocked"]
 
 
 def test_task_with_dependencies_computed_fields(test_app):
@@ -1151,149 +1154,149 @@ def test_task_create_with_circular_dependency_error_message(test_app):
 def test_task_list_actionable_no_dependencies(test_app):
     """Test --actionable flag with no dependencies shows all tasks"""
     runner = CliRunner()
-    with freeze_time(datetime(year=2026, month=4, day=2, hour=13, minute=3, second=7)):
-        with runner.isolated_filesystem():
-            result = runner.invoke(
-                cli, args=["task", "list", "--actionable"], obj=test_app
-            )
-            assert result.exit_code == 0
-            # All 5 tasks should be shown since none have dependencies
-            assert result.output.count("Task(") == 5
+    with (
+        freeze_time(datetime(year=2026, month=4, day=2, hour=13, minute=3, second=7)),
+        runner.isolated_filesystem(),
+    ):
+        result = runner.invoke(cli, args=["task", "list", "--actionable"], obj=test_app)
+        assert result.exit_code == 0
+        # All 5 tasks should be shown since none have dependencies
+        assert result.output.count("Task(") == 5
 
 
 def test_task_list_actionable_with_blocked_tasks(test_app):
     """Test --actionable flag filters out blocked tasks"""
     runner = CliRunner()
-    with freeze_time(datetime(year=2026, month=4, day=2, hour=13, minute=3, second=7)):
-        with runner.isolated_filesystem():
-            # Create task 6 that depends on task 1 (which is not finished)
-            runner.invoke(
-                cli,
-                args=["task", "create", "Blocked Task", "--depends-on", "1"],
-                obj=test_app,
-            )
+    with (
+        freeze_time(datetime(year=2026, month=4, day=2, hour=13, minute=3, second=7)),
+        runner.isolated_filesystem(),
+    ):
+        # Create task 6 that depends on task 1 (which is not finished)
+        runner.invoke(
+            cli,
+            args=["task", "create", "Blocked Task", "--depends-on", "1"],
+            obj=test_app,
+        )
 
-            # List actionable tasks - should exclude task 6
-            result = runner.invoke(
-                cli, args=["task", "list", "--actionable"], obj=test_app
-            )
-            assert result.exit_code == 0
+        # List actionable tasks - should exclude task 6
+        result = runner.invoke(cli, args=["task", "list", "--actionable"], obj=test_app)
+        assert result.exit_code == 0
 
-            # Should show 5 original tasks but not task 6
-            assert result.output.count("Task(") == 5
-            assert "Blocked Task" not in result.output
+        # Should show 5 original tasks but not task 6
+        assert result.output.count("Task(") == 5
+        assert "Blocked Task" not in result.output
 
 
 def test_task_list_actionable_with_finished_dependency(test_app):
     """Test --actionable flag includes tasks whose dependencies are finished"""
     runner = CliRunner()
-    with freeze_time(datetime(year=2026, month=4, day=2, hour=13, minute=3, second=7)):
-        with runner.isolated_filesystem():
-            # Move task 1 to Done column (column 3) to mark it as finished
-            runner.invoke(cli, args=["task", "move", "1", "3"], obj=test_app)
+    with (
+        freeze_time(datetime(year=2026, month=4, day=2, hour=13, minute=3, second=7)),
+        runner.isolated_filesystem(),
+    ):
+        # Move task 1 to Done column (column 3) to mark it as finished
+        runner.invoke(cli, args=["task", "move", "1", "3"], obj=test_app)
 
-            # Get task 1 and manually finish it
-            task1 = test_app.backend.get_task_by_id(task_id=1)
-            task1.finish_task()
-            test_app.backend.update_task_status(task1)
+        # Get task 1 and manually finish it
+        task1 = test_app.backend.get_task_by_id(task_id=1)
+        task1.finish_task()
+        test_app.backend.update_task_status(task1)
 
-            # Create task 6 that depends on task 1 (which is now finished)
-            runner.invoke(
-                cli,
-                args=["task", "create", "Unblocked Task", "--depends-on", "1"],
-                obj=test_app,
-            )
+        # Create task 6 that depends on task 1 (which is now finished)
+        runner.invoke(
+            cli,
+            args=["task", "create", "Unblocked Task", "--depends-on", "1"],
+            obj=test_app,
+        )
 
-            # List actionable tasks - should include task 6
-            result = runner.invoke(
-                cli, args=["task", "list", "--actionable"], obj=test_app
-            )
-            assert result.exit_code == 0
+        # List actionable tasks - should include task 6
+        result = runner.invoke(cli, args=["task", "list", "--actionable"], obj=test_app)
+        assert result.exit_code == 0
 
-            # Should show all 6 tasks including the unblocked one
-            assert result.output.count("Task(") == 6
-            assert "Unblocked Task" in result.output
+        # Should show all 6 tasks including the unblocked one
+        assert result.output.count("Task(") == 6
+        assert "Unblocked Task" in result.output
 
 
 def test_task_list_actionable_with_multiple_dependencies(test_app):
     """Test --actionable flag with multiple dependencies"""
     runner = CliRunner()
-    with freeze_time(datetime(year=2026, month=4, day=2, hour=13, minute=3, second=7)):
-        with runner.isolated_filesystem():
-            # Finish task 1
-            task1 = test_app.backend.get_task_by_id(task_id=1)
-            task1.finish_task()
-            test_app.backend.update_task_status(task1)
+    with (
+        freeze_time(datetime(year=2026, month=4, day=2, hour=13, minute=3, second=7)),
+        runner.isolated_filesystem(),
+    ):
+        # Finish task 1
+        task1 = test_app.backend.get_task_by_id(task_id=1)
+        task1.finish_task()
+        test_app.backend.update_task_status(task1)
 
-            # Create task 6 that depends on task 1 (finished) and task 2 (not finished)
-            runner.invoke(
-                cli,
-                args=[
-                    "task",
-                    "create",
-                    "Multi-Dep Task",
-                    "--depends-on",
-                    "1",
-                    "--depends-on",
-                    "2",
-                ],
-                obj=test_app,
-            )
+        # Create task 6 that depends on task 1 (finished) and task 2 (not finished)
+        runner.invoke(
+            cli,
+            args=[
+                "task",
+                "create",
+                "Multi-Dep Task",
+                "--depends-on",
+                "1",
+                "--depends-on",
+                "2",
+            ],
+            obj=test_app,
+        )
 
-            # List actionable tasks - should exclude task 6 because task 2 is not finished
-            result = runner.invoke(
-                cli, args=["task", "list", "--actionable"], obj=test_app
-            )
-            assert result.exit_code == 0
+        # List actionable tasks - should exclude task 6 because task 2 is not finished
+        result = runner.invoke(cli, args=["task", "list", "--actionable"], obj=test_app)
+        assert result.exit_code == 0
 
-            # Should show 5 original tasks but not task 6
-            assert result.output.count("Task(") == 5
-            assert "Multi-Dep Task" not in result.output
+        # Should show 5 original tasks but not task 6
+        assert result.output.count("Task(") == 5
+        assert "Multi-Dep Task" not in result.output
 
-            # Now finish task 2
-            task2 = test_app.backend.get_task_by_id(task_id=2)
-            task2.finish_task()
-            test_app.backend.update_task_status(task2)
+        # Now finish task 2
+        task2 = test_app.backend.get_task_by_id(task_id=2)
+        task2.finish_task()
+        test_app.backend.update_task_status(task2)
 
-            # List actionable tasks again - should now include task 6
-            result = runner.invoke(
-                cli, args=["task", "list", "--actionable"], obj=test_app
-            )
-            assert result.exit_code == 0
+        # List actionable tasks again - should now include task 6
+        result = runner.invoke(cli, args=["task", "list", "--actionable"], obj=test_app)
+        assert result.exit_code == 0
 
-            # Should show all 6 tasks
-            assert result.output.count("Task(") == 6
-            assert "Multi-Dep Task" in result.output
+        # Should show all 6 tasks
+        assert result.output.count("Task(") == 6
+        assert "Multi-Dep Task" in result.output
 
 
 def test_task_list_actionable_json_format(test_app):
     """Test --actionable flag with JSON output"""
     runner = CliRunner()
-    with freeze_time(datetime(year=2026, month=4, day=2, hour=13, minute=3, second=7)):
-        with runner.isolated_filesystem():
-            # Create blocked task
-            runner.invoke(
-                cli,
-                args=["task", "create", "Blocked Task", "--depends-on", "1"],
-                obj=test_app,
-            )
+    with (
+        freeze_time(datetime(year=2026, month=4, day=2, hour=13, minute=3, second=7)),
+        runner.isolated_filesystem(),
+    ):
+        # Create blocked task
+        runner.invoke(
+            cli,
+            args=["task", "create", "Blocked Task", "--depends-on", "1"],
+            obj=test_app,
+        )
 
-            # List actionable tasks in JSON format
-            result = runner.invoke(
-                cli, args=["task", "list", "--actionable", "--json"], obj=test_app
-            )
-            assert result.exit_code == 0
+        # List actionable tasks in JSON format
+        result = runner.invoke(
+            cli, args=["task", "list", "--actionable", "--json"], obj=test_app
+        )
+        assert result.exit_code == 0
 
-            import json
+        import json
 
-            tasks = json.loads(result.output)
+        tasks = json.loads(result.output)
 
-            # Should have 5 tasks (excluding the blocked one)
-            assert len(tasks) == 5
+        # Should have 5 tasks (excluding the blocked one)
+        assert len(tasks) == 5
 
-            # None of the returned tasks should be task 6
-            task_ids = [t["task_id"] for t in tasks]
-            assert 6 not in task_ids
+        # None of the returned tasks should be task 6
+        task_ids = [t["task_id"] for t in tasks]
+        assert 6 not in task_ids
 
 
 def test_task_create_with_category(test_app):

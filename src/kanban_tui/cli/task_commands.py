@@ -1,10 +1,9 @@
 """CLI commands for kanban-tui task management"""
 
-from pydantic import TypeAdapter
-
 import datetime
 
 import click
+from pydantic import TypeAdapter
 
 from kanban_tui.app import KanbanTui
 from kanban_tui.classes.task import Task

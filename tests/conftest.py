@@ -1,14 +1,14 @@
 import os
-from pathlib import Path
 from datetime import datetime
-from typing_extensions import Generator
+from pathlib import Path
 
 import pytest
 from freezegun import freeze_time
+from typing_extensions import Generator
 
-from kanban_tui.constants import AUTH_NAME, CONFIG_NAME, DATABASE_NAME
-from kanban_tui.config import Settings, init_config
 from kanban_tui.app import KanbanTui
+from kanban_tui.config import Settings, init_config
+from kanban_tui.constants import AUTH_NAME, CONFIG_NAME, DATABASE_NAME
 
 
 # Paths

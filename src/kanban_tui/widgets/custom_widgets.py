@@ -1,6 +1,6 @@
 from textual.binding import Binding
 from textual.containers import Horizontal
-from textual.widgets import Footer, Label, Select, Button
+from textual.widgets import Button, Footer, Label, Select
 from textual.widgets._footer import FooterKey
 from textual.widgets._select import SelectOverlay
 

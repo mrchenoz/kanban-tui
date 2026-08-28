@@ -7,7 +7,7 @@ from textual.color import Color, ColorParseError
 from kanban_tui.app import KanbanTui
 from kanban_tui.classes.category import Category
 from kanban_tui.config import Backends
-from kanban_tui.utils import print_to_console, get_next_category_color
+from kanban_tui.utils import get_next_category_color, print_to_console
 
 
 @click.group()

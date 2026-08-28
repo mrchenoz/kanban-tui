@@ -1,17 +1,17 @@
-from typing import Iterable, TYPE_CHECKING
-
+from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from kanban_tui.app import KanbanTui
 
 
 from textual import on
-from textual.widget import Widget
 from textual.binding import Binding
-from textual.screen import ModalScreen
-from textual.widgets import Input, Button
 from textual.containers import Vertical
+from textual.screen import ModalScreen
 from textual.validation import URL
+from textual.widget import Widget
+from textual.widgets import Button, Input
 
 from kanban_tui.widgets.custom_widgets import ButtonRow
 

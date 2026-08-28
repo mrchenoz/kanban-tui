@@ -1,5 +1,6 @@
+from collections.abc import Iterable
 from datetime import datetime
-from typing import Iterable, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from kanban_tui.config import Backends
 
@@ -8,20 +9,20 @@ if TYPE_CHECKING:
 
 from rich.text import Text
 from textual import on, work
-from textual.widget import Widget
 from textual.binding import Binding
-from textual.events import Mount
-from textual.validation import Validator, ValidationResult
-from textual.screen import ModalScreen
-from textual.widgets import Input, Button, ListView, Static, Label, Footer, Switch
 from textual.containers import Horizontal, Vertical
+from textual.events import Mount
+from textual.screen import ModalScreen
+from textual.validation import ValidationResult, Validator
+from textual.widget import Widget
+from textual.widgets import Button, Footer, Input, Label, ListView, Static, Switch
 
 from kanban_tui.classes.board import Board
+from kanban_tui.modal.modal_confirm_screen import ModalConfirmScreen
 from kanban_tui.widgets.modal_board_widgets import (
     BoardList,
     CustomColumnList,
 )
-from kanban_tui.modal.modal_confirm_screen import ModalConfirmScreen
 
 
 class ModalNewBoardScreen(ModalScreen):
@@ -194,10 +195,10 @@ class ModalBoardOverviewScreen(ModalScreen):
             yield Footer(show_command_palette=False)
 
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
-        if action in ["edit_board", "delete_board", "copy_board", "dismiss"]:
-            if self.query_one(BoardList).highlighted_child is None:
-                return False
-        return True
+        return not (
+            action in ["edit_board", "delete_board", "copy_board", "dismiss"]
+            and self.query_one(BoardList).highlighted_child is None
+        )
 
     @on(Button.Pressed, "#btn_create_board")
     def action_new_board(self) -> None:

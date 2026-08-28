@@ -1,17 +1,15 @@
 """Integration tests for Claude backend in the TUI app."""
 
-from kanban_tui.modal.modal_task_screen import ModalTaskEditScreen
-
-from kanban_tui.modal.modal_confirm_screen import ModalConfirmScreen
-
-from kanban_tui.widgets.task_card import TaskCard
-
 import json
 from pathlib import Path
+
 import pytest
 
 from kanban_tui.app import KanbanTui
 from kanban_tui.config import Backends
+from kanban_tui.modal.modal_confirm_screen import ModalConfirmScreen
+from kanban_tui.modal.modal_task_screen import ModalTaskEditScreen
+from kanban_tui.widgets.task_card import TaskCard
 
 APP_SIZE = (150, 50)
 
@@ -57,7 +55,7 @@ def temp_claude_tasks_env(tmp_path: Path, monkeypatch):
 
 def test_claude_backend_can_be_selected(test_app, temp_claude_tasks_env):
     """Test that Claude backend can be instantiated in the app."""
-    tasks_path, session_id = temp_claude_tasks_env
+    _tasks_path, session_id = temp_claude_tasks_env
 
     test_app.config.backend.mode = Backends.CLAUDE
     test_app.config.backend.claude_settings.active_session_id = session_id
@@ -98,7 +96,7 @@ def test_claude_backend_settings_in_config(test_app: KanbanTui):
 
 def test_claude_backend_read_only_operations(temp_claude_tasks_env, test_app):
     """Test that write operations raise NotImplementedError."""
-    tasks_path, session_id = temp_claude_tasks_env
+    _tasks_path, session_id = temp_claude_tasks_env
 
     test_app.config.backend.mode = Backends.CLAUDE
     test_app.config.backend.claude_settings.active_session_id = session_id
@@ -115,7 +113,7 @@ def test_claude_backend_read_only_operations(temp_claude_tasks_env, test_app):
 
 async def test_claude_backend_move_task(temp_claude_tasks_env, test_app: KanbanTui):
     """Test that write operations raise NotImplementedError."""
-    tasks_path, session_id = temp_claude_tasks_env
+    _tasks_path, session_id = temp_claude_tasks_env
 
     test_app.config.backend.mode = Backends.CLAUDE
     test_app.config.backend.claude_settings.active_session_id = session_id

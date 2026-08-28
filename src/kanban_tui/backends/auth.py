@@ -1,14 +1,13 @@
 import os
 from pathlib import Path
-from typing import Type
 
+import tomli_w
 from pydantic import BaseModel, Field
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
     TomlConfigSettingsSource,
 )
-import tomli_w
 
 from kanban_tui.constants import AUTH_FILE
 
@@ -44,17 +43,14 @@ class AuthSettings(BaseSettings):
     @classmethod
     def settings_customise_sources(
         cls,
-        settings_cls: Type[BaseSettings],
+        settings_cls: type[BaseSettings],
         init_settings: PydanticBaseSettingsSource,
         env_settings: PydanticBaseSettingsSource,
         dotenv_settings: PydanticBaseSettingsSource,
         file_secret_settings: PydanticBaseSettingsSource,
     ) -> tuple[PydanticBaseSettingsSource, ...]:
         config_from_env = os.getenv("KANBAN_TUI_AUTH_FILE")
-        if config_from_env:
-            conf_file = Path(config_from_env).resolve()
-        else:
-            conf_file = AUTH_FILE
+        conf_file = Path(config_from_env).resolve() if config_from_env else AUTH_FILE
 
         default_sources = (
             init_settings,

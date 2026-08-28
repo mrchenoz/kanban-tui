@@ -1,29 +1,29 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING, Literal
-from collections import defaultdict
 
+from collections import defaultdict
+from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
     from kanban_tui.app import KanbanTui
 
 
 from textual import on
-from textual.events import MouseDown, MouseMove, MouseUp
 from textual.binding import Binding
-from textual.reactive import reactive
 from textual.containers import HorizontalScroll, VerticalScroll
+from textual.events import MouseDown, MouseMove, MouseUp
+from textual.reactive import reactive
 from textual.widgets import Label
 
-from kanban_tui.widgets.task_column import Column
-from kanban_tui.widgets.task_card import TaskCard
-from kanban_tui.modal.modal_task_screen import ModalTaskEditScreen
-from kanban_tui.modal.modal_board_screen import ModalBoardOverviewScreen
 from kanban_tui.classes.task import Task
 from kanban_tui.config import Backends
+from kanban_tui.modal.modal_board_screen import ModalBoardOverviewScreen
+from kanban_tui.modal.modal_task_screen import ModalTaskEditScreen
+from kanban_tui.widgets.task_card import TaskCard
+from kanban_tui.widgets.task_column import Column
 
 
 class KanbanBoard(HorizontalScroll):
-    app: "KanbanTui"
+    app: KanbanTui
 
     BINDINGS = [
         Binding("n", "new_task", "New Task", show=True, priority=True),
@@ -89,7 +89,9 @@ class KanbanBoard(HorizontalScroll):
         for task in self.app.task_list:
             tasks_by_column[task.column].append(task)
 
-        for column_model, column_widget in zip(visible_columns, mounted_columns):
+        for column_model, column_widget in zip(
+            visible_columns, mounted_columns, strict=False
+        ):
             desired_tasks = tasks_by_column.get(column_model.column_id, [])
             await self._refresh_column_widget(
                 column_model.name,
@@ -122,7 +124,7 @@ class KanbanBoard(HorizontalScroll):
 
         return all(
             card.task_.task_id == task.task_id
-            for card, task in zip(rendered_cards, desired_tasks)
+            for card, task in zip(rendered_cards, desired_tasks, strict=False)
         )
 
     async def _refresh_column_widget(
@@ -150,7 +152,9 @@ class KanbanBoard(HorizontalScroll):
         desired_tasks: list[Task],
     ) -> None:
         rendered_cards = column.get_rendered_cards()
-        for row_position, (card, task) in enumerate(zip(rendered_cards, desired_tasks)):
+        for row_position, (card, task) in enumerate(
+            zip(rendered_cards, desired_tasks, strict=False)
+        ):
             card.row = row_position
             task.position = row_position
             if self.app.needs_refresh or card.task_ != task:
@@ -169,7 +173,9 @@ class KanbanBoard(HorizontalScroll):
         if len(rendered_cards) != len(desired_tasks):
             return False
 
-        for row_position, (card, task) in enumerate(zip(rendered_cards, desired_tasks)):
+        for row_position, (card, task) in enumerate(
+            zip(rendered_cards, desired_tasks, strict=False)
+        ):
             if card.row != row_position:
                 return False
             if card.task_ != task:
@@ -545,10 +551,7 @@ class KanbanBoard(HorizontalScroll):
         self.app.app_focus = True
 
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
-        if action == "confirm_move":
-            if self.target_column is None:
-                return False
-        return True
+        return not (action == "confirm_move" and self.target_column is None)
 
     @on(TaskCard.Delete)
     async def delete_task(self, event: TaskCard.Delete):
