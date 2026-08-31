@@ -1,6 +1,8 @@
 """CLI commands for kanban-tui task management"""
 
 import datetime
+import json
+from typing import Any
 
 import click
 from pydantic import TypeAdapter
@@ -9,6 +11,33 @@ from kanban_tui.app import KanbanTui
 from kanban_tui.classes.task import Task
 from kanban_tui.config import Backends
 from kanban_tui.utils import print_to_console
+
+
+def _parse_metadata_option(metadata: tuple[str, ...]) -> dict[str, Any] | None:
+    """Parse repeated ``KEY=VALUE`` options into a dict.
+
+    Values that parse as JSON are stored typed (e.g. ``logs=["a.md"]`` becomes
+    a list); anything else is kept as a plain string. An empty value
+    (``KEY=``) marks the key for removal on update.
+    """
+    if not metadata:
+        return None
+    parsed: dict[str, Any] = {}
+    for entry in metadata:
+        key, sep, value = entry.partition("=")
+        if not key or not sep:
+            raise click.BadParameter(
+                f"Invalid metadata entry {entry!r}, expected KEY=VALUE.",
+                param_hint="'--metadata'",
+            )
+        if value == "":
+            parsed[key] = None
+        else:
+            try:
+                parsed[key] = json.loads(value)
+            except json.JSONDecodeError:
+                parsed[key] = value
+    return parsed
 
 
 @click.group()
@@ -150,6 +179,15 @@ def list_tasks(
     type=click.INT,
     help="Task ID(s) this task depends on (can be used multiple times)",
 )
+@click.option(
+    "--metadata",
+    multiple=True,
+    type=click.STRING,
+    help=(
+        "Set metadata as KEY=VALUE (can be used multiple times). "
+        "JSON values are parsed, e.g. --metadata 'logs=[\"a.md\"]'."
+    ),
+)
 def create_task(
     app: KanbanTui,
     title: str,
@@ -158,10 +196,15 @@ def create_task(
     category: int,
     due_date: datetime.datetime,
     depends_on: tuple[int, ...],
+    metadata: tuple[str, ...],
 ):
     """
     Creates a new task
     """
+    metadata_dict = _parse_metadata_option(metadata)
+    if metadata_dict is not None:
+        # removal markers (KEY=) are meaningless on create
+        metadata_dict = {k: v for k, v in metadata_dict.items() if v is not None}
     first_visible_column = next(
         column for column in app.backend.get_columns() if column.visible
     ).column_id
@@ -171,6 +214,7 @@ def create_task(
         column=column or first_visible_column,
         category=category,
         due_date=due_date,
+        metadata=metadata_dict,
     )
     task_id = new_task.task_id
     print_to_console(f"Created task `{title}` with {task_id = }.")
@@ -250,6 +294,16 @@ def create_task(
     type=click.INT,
     help="Task ID(s) to remove as dependencies (can be used multiple times)",
 )
+@click.option(
+    "--metadata",
+    multiple=True,
+    type=click.STRING,
+    help=(
+        "Set metadata as KEY=VALUE (can be used multiple times). "
+        "JSON values are parsed; KEY= removes the key. "
+        "Other metadata keys are left untouched."
+    ),
+)
 def update_task(
     app: KanbanTui,
     task_id: int,
@@ -259,11 +313,13 @@ def update_task(
     due_date: datetime.datetime | None,
     depends_on: tuple[int, ...],
     remove_dependency: tuple[int, ...],
+    metadata: tuple[str, ...],
 ):
     """
     Updates a task
     """
     old_task = app.backend.get_task_by_id(task_id=task_id)
+    metadata_update = _parse_metadata_option(metadata)
 
     # Check if any updates were provided
     if all(
@@ -274,6 +330,7 @@ def update_task(
             due_date is None,
             not depends_on,
             not remove_dependency,
+            metadata_update is None,
         )
     ):
         print_to_console("No fields to update provided.")
@@ -286,14 +343,24 @@ def update_task(
             description is not None,
             category is not None,
             due_date is not None,
+            metadata_update is not None,
         )
     ):
+        merged_metadata = None
+        if metadata_update is not None:
+            merged_metadata = dict(old_task.metadata)
+            for key, value in metadata_update.items():
+                if value is None:
+                    merged_metadata.pop(key, None)
+                else:
+                    merged_metadata[key] = value
         _updated_task = app.backend.update_task_entry(
             task_id=task_id,
             title=title or old_task.title,
             description=description or old_task.description,
             category=category if category is not None else old_task.category,
             due_date=due_date or old_task.due_date,
+            metadata=merged_metadata,
         )
         print_to_console(f"Updated task with {task_id = }.")
 

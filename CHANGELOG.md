@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+### Added
+- `--metadata KEY=VALUE` option (repeatable) on `task create` and `task update`. JSON values are parsed, `KEY=` removes a key on update, and other keys are left untouched. Exposes the existing tasks `metadata` column to the CLI so agents and scripts can attach structured references (e.g. a note name or log paths) to a card.
+
 ## v0.21.2
 ### Fixed
 - Fix issue with env vars for db/config path not being used when initilizing the app
