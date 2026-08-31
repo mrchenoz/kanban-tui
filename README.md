@@ -11,6 +11,11 @@
 A customizable terminal-based task manager powered by [Textual][textual] with multiple backends.
 Now also usable in co-op mode with AI agents (check the [CLI interface](#cli-interface) and [MCP Server](#mcp-server) section for more info).
 
+> [!NOTE]
+> This repository is a derivative of [**Zaloog/kanban-tui**](https://github.com/Zaloog/kanban-tui) by Lars Grams,
+> maintained separately for experimentation. All credit for the original work belongs to
+> the upstream authors. Distributed under the MIT License — see [LICENSE.txt](LICENSE.txt).
+
 ## Demo
 ![demo_gif](https://raw.githubusercontent.com/Zaloog/kanban-tui/main/docs/demo.gif)
 
