@@ -1,6 +1,7 @@
 import sys
 
 import pytest
+from textual.geometry import Region
 from textual.widgets import Button, Input, Label
 
 from kanban_tui.app import KanbanTui
@@ -485,3 +486,58 @@ async def test_custom_footer_backend_switcher(test_app: KanbanTui):
     async with test_app.run_test(size=APP_SIZE) as pilot:
         assert not pilot.app.screen.query_one(VimSelect).display
         assert pilot.app.screen.query_one(VimSelect).value == f"✔  {Backends.SQLITE}"
+
+
+async def test_task_card_shows_task_id(test_app: KanbanTui):
+    async with test_app.run_test(size=APP_SIZE) as pilot:
+        assert pilot.app.config.task.show_task_id
+        cards = list(pilot.app.screen.query(TaskCard).results())
+        assert cards
+        for card in cards:
+            assert str(card.border_title) == f"#{card.task_.task_id}"
+
+        # unfocused card: id is rendered in the top border with a visible color
+        card = pilot.app.screen.query_one("#taskcard_2", TaskCard)
+        assert not card.has_focus
+        strip = card.render_lines(Region(0, 0, card.size.width, 1))[0]
+        id_segments = [seg for seg in strip if "#2" in seg.text]
+        assert id_segments, strip.text
+        style = id_segments[0].style
+        assert style is not None and style.color is not None
+        assert style.color != style.bgcolor
+
+        # focused card: id still present in the border
+        card.focus()
+        await pilot.pause()
+        strip = card.render_lines(Region(0, 0, card.size.width, 1))[0]
+        assert "#2" in strip.text
+        # title label is untouched
+        assert str(card.query_one(".label-title", Label).content) == "Task_ready_1"
+
+
+async def test_task_card_hides_task_id_when_disabled(test_app: KanbanTui):
+    test_app.config.task.show_task_id = False
+    async with test_app.run_test(size=APP_SIZE) as pilot:
+        cards = list(pilot.app.screen.query(TaskCard).results())
+        assert cards
+        for card in cards:
+            assert str(card.border_title) == ""
+            strip = card.render_lines(Region(0, 0, card.size.width, 1))[0]
+            assert "#" not in strip.text
+
+
+async def test_task_card_task_id_with_long_title(test_app: KanbanTui):
+    long_title = "A" * 200
+    test_app.backend.create_new_task(
+        title=long_title, description="", category=None, column=1
+    )
+    async with test_app.run_test(size=APP_SIZE) as pilot:
+        card = pilot.app.screen.query_one("#taskcard_6", TaskCard)
+        column = pilot.app.screen.query_one("#column_1", Column)
+        assert str(card.border_title) == "#6"
+        # card stays within its column, the id remains in the top border
+        assert card.region.width <= column.region.width
+        assert card.region.right <= column.region.right
+        strip = card.render_lines(Region(0, 0, card.size.width, 1))[0]
+        assert "#6" in strip.text
+        assert str(card.query_one(".label-title", Label).content) == long_title

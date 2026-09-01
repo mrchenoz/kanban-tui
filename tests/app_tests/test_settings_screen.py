@@ -81,6 +81,31 @@ async def test_task_metadata_expand_switch(test_app: KanbanTui):
         assert pilot.app.needs_refresh
 
 
+async def test_task_show_task_id_switch(test_app: KanbanTui):
+    async with test_app.run_test(size=APP_SIZE) as pilot:
+        board_cards = list(pilot.app.screen.query(TaskCard).results())
+        assert str(board_cards[1].border_title) == f"#{board_cards[1].task_.task_id}"
+
+        await pilot.press("ctrl+l")
+        await pilot.pause()
+
+        assert pilot.app.config.task.show_task_id
+        assert pilot.app.screen.query_exactly_one("#switch_show_task_id", Switch).value
+
+        await pilot.click("#switch_show_task_id")
+        assert not pilot.app.screen.query_exactly_one(
+            "#switch_show_task_id", Switch
+        ).value
+        assert not pilot.app.config.task.show_task_id
+        assert pilot.app.needs_refresh
+
+        await pilot.press("ctrl+j")
+        await pilot.pause()
+
+        board_cards = list(pilot.app.screen.query(TaskCard).results())
+        assert str(board_cards[1].border_title) == ""
+
+
 async def test_task_metadata_expand_switch_refreshes_board_cards(test_app: KanbanTui):
     async with test_app.run_test(size=APP_SIZE) as pilot:
         board_cards = list(pilot.app.screen.query(TaskCard).results())

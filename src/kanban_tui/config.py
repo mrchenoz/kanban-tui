@@ -46,6 +46,7 @@ class TaskSettings(BaseModel):
     default_color: str = Field(default="#004578")
     always_expanded: bool = Field(default=False)
     metadata_always_expanded: bool = Field(default=True)
+    show_task_id: bool = Field(default=True)
     movement_mode: MovementModes = Field(default=MovementModes("adjacent"))
     append_mode: TaskAppendModes = Field(default=TaskAppendModes("top"))
 
@@ -108,6 +109,10 @@ class Settings(BaseSettings):
 
     def set_task_metadata_always_expanded(self, new_value: bool) -> None:
         self.task.metadata_always_expanded = new_value
+        self.save()
+
+    def set_task_show_task_id(self, new_value: bool) -> None:
+        self.task.show_task_id = new_value
         self.save()
 
     def set_task_default_color(self, new_color: str) -> None:

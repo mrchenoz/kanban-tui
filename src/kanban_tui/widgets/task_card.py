@@ -116,6 +116,7 @@ class TaskCard(Vertical):
         self.task_ = task
 
     def compose(self) -> ComposeResult:
+        self.update_border_title()
         yield Label(self.task_.title, classes="label-title")
         self.metadata_label = Label(
             self.get_compact_metadata_str(), classes="label-metadata"
@@ -128,6 +129,13 @@ class TaskCard(Vertical):
 
         # Handle Coloring
         self.color_task()
+
+    def update_border_title(self) -> None:
+        """Show the task id in the card frame, so it can be referenced on the CLI."""
+        if self.app.config.task.show_task_id:
+            self.border_title = f"#{self.task_.task_id}"
+        else:
+            self.border_title = ""
 
     def color_task(self):
         if category_id := self.task_.category:

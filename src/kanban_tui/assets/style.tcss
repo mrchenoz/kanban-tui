@@ -75,6 +75,8 @@ TaskCard {
   min-height: 3;
   margin: 0 0 1 0;
   border: tall transparent;
+  border-title-align: center;
+  border-title-color: auto 90%;
   transition: height 200ms linear;
   &.blinking {
     border: tall $warning;
@@ -567,6 +569,17 @@ TaskAlwaysExpandedSwitch{
   }
 }
 TaskMetadataAlwaysExpandedSwitch{
+  height:auto;
+  width:1fr;
+  Label{
+    width:1fr;
+    padding: 1 0 0 1;
+  }
+  Switch {
+      width:1fr;
+  }
+}
+TaskShowTaskIdSwitch{
   height:auto;
   width:1fr;
   Label{

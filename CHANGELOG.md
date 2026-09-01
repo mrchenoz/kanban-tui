@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+### Added
+- Show the task id (e.g. `#40`) in the frame of each task card on the board, so tasks can be referenced by the same id used on the CLI. Can be disabled via the new config option `task.show_task_id`
+
 ## v0.21.2
 ### Fixed
 - Fix issue with env vars for db/config path not being used when initilizing the app
