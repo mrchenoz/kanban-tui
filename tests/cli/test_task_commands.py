@@ -1735,3 +1735,108 @@ def test_task_update_dependencies_persist_across_updates(test_app):
         task = test_app.backend.get_task_by_id(task_id=1)
         assert sorted(task.blocked_by) == [2, 3]
         assert task.title == "New Title"
+
+
+def test_task_create_with_metadata(test_app):
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            cli,
+            args=[
+                "task",
+                "create",
+                "Meta Task",
+                "--metadata",
+                "note=0908 Learning Tasks",
+                "--metadata",
+                'logs=["bart/logs/2026-08-25-0908-do-now.md"]',
+            ],
+            obj=test_app,
+        )
+        assert result.exit_code == 0
+        task = test_app.backend.get_task_by_id(task_id=6)
+        assert task.metadata["note"] == "0908 Learning Tasks"
+        assert task.metadata["logs"] == ["bart/logs/2026-08-25-0908-do-now.md"]
+
+
+def test_task_update_metadata_merges_and_removes(test_app):
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            cli,
+            args=[
+                "task",
+                "create",
+                "Meta Task",
+                "--metadata",
+                "note=Old Note",
+                "--metadata",
+                "owner=lisa",
+            ],
+            obj=test_app,
+        )
+        assert result.exit_code == 0
+        result = runner.invoke(
+            cli,
+            args=[
+                "task",
+                "update",
+                "6",
+                "--metadata",
+                "note=New Note",
+                "--metadata",
+                "owner=",
+            ],
+            obj=test_app,
+        )
+        assert result.exit_code == 0
+        assert "Updated task with task_id = 6." in result.output
+        task = test_app.backend.get_task_by_id(task_id=6)
+        assert task.metadata["note"] == "New Note"
+        assert "owner" not in task.metadata
+
+
+def test_task_update_metadata_only_counts_as_update(test_app):
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            cli,
+            args=["task", "update", "1", "--metadata", "note=Some Note"],
+            obj=test_app,
+        )
+        assert result.exit_code == 0
+        assert "No fields to update provided." not in result.output
+        task = test_app.backend.get_task_by_id(task_id=1)
+        assert task.metadata["note"] == "Some Note"
+        # other fields untouched
+        assert task.title == "Task_ready_0"
+
+
+def test_task_update_metadata_leaves_other_keys_untouched(test_app):
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        runner.invoke(
+            cli,
+            args=["task", "update", "1", "--metadata", "note=Keep Me"],
+            obj=test_app,
+        )
+        runner.invoke(
+            cli,
+            args=["task", "update", "1", "--metadata", "log=bart/logs/a.md"],
+            obj=test_app,
+        )
+        task = test_app.backend.get_task_by_id(task_id=1)
+        assert task.metadata["note"] == "Keep Me"
+        assert task.metadata["log"] == "bart/logs/a.md"
+
+
+def test_task_create_metadata_invalid_format(test_app):
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            cli,
+            args=["task", "create", "Meta Task", "--metadata", "no_equals_sign"],
+            obj=test_app,
+        )
+        assert result.exit_code != 0
+        assert "expected KEY=VALUE" in result.output

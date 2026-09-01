@@ -235,6 +235,7 @@ class ClaudeBackend(Backend):
         column: int,
         category: int | None = None,
         due_date: datetime | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> Task:
         raise NotImplementedError("Claude backend is read-only. Cannot create tasks.")
 
@@ -282,6 +283,7 @@ class ClaudeBackend(Backend):
         description: str,
         category: int | None,
         due_date: datetime | None,
+        metadata: dict[str, Any] | None = None,
     ) -> Task | None:
         task_path = self.get_task_file_path(task_id)
         new_json_dict = self.update_task_json(task_path, title, description)

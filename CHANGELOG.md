@@ -3,6 +3,7 @@
 ## Unreleased
 ### Added
 - Show the task id (e.g. `#40`) in the frame of each task card on the board, so tasks can be referenced by the same id used on the CLI. Can be disabled via the new config option `task.show_task_id`
+- `--metadata KEY=VALUE` option (repeatable) on `task create` and `task update`. JSON values are parsed, `KEY=` removes a key on update, and other keys are left untouched. Exposes the existing tasks `metadata` column to the CLI so agents and scripts can attach structured references (e.g. a note name or log paths) to a card.
 
 ## v0.21.2
 ### Fixed

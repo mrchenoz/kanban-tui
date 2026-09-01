@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 from kanban_tui.backends.base import Backend
 from kanban_tui.backends.sqlite.database import (
@@ -114,6 +115,7 @@ class SqliteBackend(Backend):
         column: int,
         category: int | None = None,
         due_date: datetime | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> Task:
         return create_new_task_db(
             title=title,
@@ -121,6 +123,7 @@ class SqliteBackend(Backend):
             column=column,
             category=category,
             due_date=due_date,
+            metadata=metadata,
             database=self.database_path,
         )
 
@@ -151,6 +154,7 @@ class SqliteBackend(Backend):
         description: str,
         category: int,
         due_date: datetime,
+        metadata: dict[str, Any] | None = None,
     ) -> Task:
         return update_task_entry_db(
             task_id=task_id,
@@ -158,6 +162,7 @@ class SqliteBackend(Backend):
             description=description,
             category=category,
             due_date=due_date,
+            metadata=metadata,
             database=self.database_path,
         )
 
