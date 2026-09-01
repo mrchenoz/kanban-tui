@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+import os
+import re
+import subprocess
+from pathlib import Path
 from typing import TYPE_CHECKING, Literal
+from urllib.parse import quote
 
 from kanban_tui.config import Backends, MovementModes
 
@@ -19,8 +24,13 @@ from textual.widgets import Label, Markdown
 
 from kanban_tui.classes.task import Task
 from kanban_tui.modal.modal_confirm_screen import ModalConfirmScreen
+from kanban_tui.modal.modal_log_screen import ModalLogViewScreen
 from kanban_tui.modal.modal_task_screen import ModalTaskEditScreen
 from kanban_tui.utils import get_column_status_dict
+
+# First wikilink target in a description, alias/heading parts stripped:
+# [[Note Name|alias]] or [[Note Name#heading]] -> "Note Name"
+WIKILINK_RE = re.compile(r"\[\[([^\]|#]+)")
 
 
 class TaskCard(Vertical):
@@ -47,6 +57,8 @@ class TaskCard(Vertical):
         ),
         Binding("d", "delete_task", description="Delete", show=True),
         Binding("i", "show_blocking_tasks", description="Show Deps", show=True),
+        Binding("o", "open_note", description="Note", show=True),
+        Binding("v", "open_log", description="Log", show=True),
         Binding(
             "L",
             "move_task('right')",
@@ -163,6 +175,53 @@ class TaskCard(Vertical):
         self.metadata_label.display = (
             self.app.config.task.metadata_always_expanded or self.expanded
         )
+
+    def get_note_name(self) -> str | None:
+        """The task's note: `metadata.note` first, else the description's first wikilink."""
+        name = self.task_.get_metadata("note")
+        if name:
+            return str(name).strip()
+        match = WIKILINK_RE.search(self.task_.description or "")
+        return match.group(1).strip() if match else None
+
+    def action_open_note(self) -> None:
+        name = self.get_note_name()
+        if not name:
+            self.notify(
+                title="No note linked",
+                message="Set [$success]metadata.note[/] or add a [$success][[wikilink]][/] to the description.",
+                severity="warning",
+            )
+            return
+        vault = os.getenv("KANBAN_TUI_NOTE_VAULT", "JCNotes")
+        uri = f"obsidian://open?vault={quote(vault)}&file={quote(name)}"
+        subprocess.Popen(
+            ["xdg-open", uri],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
+    def action_open_log(self) -> None:
+        logs = self.task_.get_metadata("logs") or []
+        if isinstance(logs, str):
+            logs = [logs]
+        if not logs:
+            self.notify(
+                title="No log linked",
+                message="This task has no [$success]metadata.logs[/] entry yet.",
+                severity="warning",
+            )
+            return
+        root = Path(os.getenv("KANBAN_TUI_LOGS_ROOT", "~")).expanduser()
+        log_path = (root / str(logs[-1])).expanduser()
+        if not log_path.exists():
+            self.notify(
+                title="Log not found",
+                message=f"[$warning]{log_path}[/] does not exist on this machine.",
+                severity="warning",
+            )
+            return
+        self.app.push_screen(ModalLogViewScreen(log_path))
 
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
         if self.app.config.backend.mode == Backends.JIRA and action not in (
