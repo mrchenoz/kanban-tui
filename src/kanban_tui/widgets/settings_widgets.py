@@ -208,7 +208,7 @@ class TaskMetadataAlwaysExpandedSwitch(Horizontal):
 
 
 class TaskShowTaskIdSwitch(Horizontal):
-    app: "KanbanTui"
+    app: KanbanTui
 
     def on_mount(self):
         self.border_title = "task.show_task_id"
