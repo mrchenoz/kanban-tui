@@ -6,6 +6,9 @@
 - `--metadata KEY=VALUE` option (repeatable) on `task create` and `task update`. JSON values are parsed, `KEY=` removes a key on update, and other keys are left untouched. Exposes the existing tasks `metadata` column to the CLI so agents and scripts can attach structured references (e.g. a note name or log paths) to a card.
 - `o` / `v` keybinds on task cards. `o` opens the task's note in Obsidian via an `obsidian://` URI (from `metadata.note`, falling back to the first `[[wikilink]]` in the description; vault name from `KANBAN_TUI_NOTE_VAULT`, default `JCNotes`). `v` shows the latest entry of `metadata.logs` in a Markdown viewer modal over the board (`Esc`/`q` closes; relative paths resolve against `KANBAN_TUI_LOGS_ROOT`).
 
+### Fixed
+- `task list --json` no longer strips `[...]` from descriptions and titles. Rich markup was enabled on the JSON output, so a `[[wikilink]]` in a description printed as `[]` even though the database held it intact. JSON is now printed verbatim.
+
 ## v0.21.2
 ### Fixed
 - Fix issue with env vars for db/config path not being used when initilizing the app
