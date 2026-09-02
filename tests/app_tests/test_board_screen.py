@@ -551,6 +551,8 @@ async def test_task_card_open_note_from_metadata(test_app: KanbanTui, monkeypatc
         lambda args, **kwargs: calls.append(args),
     )
     monkeypatch.setenv("KANBAN_TUI_NOTE_VAULT", "TestVault")
+    monkeypatch.setenv("DISPLAY", ":0")
+    monkeypatch.delenv("KANBAN_TUI_NOTE_OPEN_CMD", raising=False)
     test_app.backend.create_new_task(
         title="With note",
         description="",
@@ -579,6 +581,8 @@ async def test_task_card_open_note_falls_back_to_wikilink(
         lambda args, **kwargs: calls.append(args),
     )
     monkeypatch.delenv("KANBAN_TUI_NOTE_VAULT", raising=False)
+    monkeypatch.setenv("DISPLAY", ":0")
+    monkeypatch.delenv("KANBAN_TUI_NOTE_OPEN_CMD", raising=False)
     test_app.backend.create_new_task(
         title="With wikilink",
         description="See [[0908 Learning Tasks|the plan]] for details",
@@ -650,3 +654,74 @@ async def test_task_card_open_log_without_log_notifies(test_app: KanbanTui):
         await pilot.press("v")
         await pilot.pause()
         assert not isinstance(pilot.app.screen, ModalLogViewScreen)
+
+
+async def test_task_card_open_note_uses_custom_command(
+    test_app: KanbanTui, monkeypatch
+):
+    """KANBAN_TUI_NOTE_OPEN_CMD replaces xdg-open, with {uri} substituted."""
+    calls = []
+    monkeypatch.setattr(
+        "kanban_tui.widgets.task_card.subprocess.Popen",
+        lambda args, **kwargs: calls.append(args),
+    )
+    monkeypatch.setenv("KANBAN_TUI_NOTE_VAULT", "TestVault")
+    monkeypatch.setenv(
+        "KANBAN_TUI_NOTE_OPEN_CMD",
+        "ssh me@desktop env WAYLAND_DISPLAY=wayland-1 xdg-open {uri}",
+    )
+    monkeypatch.delenv("DISPLAY", raising=False)
+    monkeypatch.delenv("WAYLAND_DISPLAY", raising=False)
+    test_app.backend.create_new_task(
+        title="Remote note",
+        description="",
+        category=None,
+        column=1,
+        metadata={"note": "Plan"},
+    )
+    async with test_app.run_test(size=APP_SIZE) as pilot:
+        card = pilot.app.screen.query_one("#taskcard_6", TaskCard)
+        card.focus()
+        await pilot.pause()
+        await pilot.press("o")
+        assert calls == [
+            [
+                "ssh",
+                "me@desktop",
+                "env",
+                "WAYLAND_DISPLAY=wayland-1",
+                "xdg-open",
+                "obsidian://open?vault=TestVault&file=Plan",
+            ]
+        ]
+
+
+async def test_task_card_open_note_without_display_copies_uri(
+    test_app: KanbanTui, monkeypatch
+):
+    """No display and no custom command (e.g. plain SSH): copy the URI, don't spawn."""
+    calls = []
+    monkeypatch.setattr(
+        "kanban_tui.widgets.task_card.subprocess.Popen",
+        lambda args, **kwargs: calls.append(args),
+    )
+    monkeypatch.setenv("KANBAN_TUI_NOTE_VAULT", "TestVault")
+    monkeypatch.delenv("KANBAN_TUI_NOTE_OPEN_CMD", raising=False)
+    monkeypatch.delenv("DISPLAY", raising=False)
+    monkeypatch.delenv("WAYLAND_DISPLAY", raising=False)
+    test_app.backend.create_new_task(
+        title="Headless note",
+        description="",
+        category=None,
+        column=1,
+        metadata={"note": "Plan"},
+    )
+    async with test_app.run_test(size=APP_SIZE) as pilot:
+        copied = []
+        monkeypatch.setattr(pilot.app, "copy_to_clipboard", copied.append)
+        card = pilot.app.screen.query_one("#taskcard_6", TaskCard)
+        card.focus()
+        await pilot.pause()
+        await pilot.press("o")
+        assert calls == []
+        assert copied == ["obsidian://open?vault=TestVault&file=Plan"]
