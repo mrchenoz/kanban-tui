@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Board TUI wrapper. Pressing `o` on a card must open the note where the *user* sits:
+#  - launched over SSH: hand the obsidian:// URI back to the SSH client (popeye, a Mac, ...)
+#    by running ~/.local/bin/open-uri there. Client address comes from SSH_CONNECTION.
+#  - launched locally on this desktop: leave KANBAN_TUI_NOTE_OPEN_CMD unset -> xdg-open here.
+# Launch from another machine:
+#   ssh jeremy@p5jc -t tmux new-session -A -s kanban ~/.local/bin/ktui-board
+export KANBAN_TUI_NOTE_VAULT="${KANBAN_TUI_NOTE_VAULT:-JCNotes}"
+export KANBAN_TUI_LOGS_ROOT="${KANBAN_TUI_LOGS_ROOT:-/home/jeremy/Documents/PKM/JCNotes/JCNotes}"
+if [ -n "${SSH_CONNECTION:-}" ] && [ -z "${KANBAN_TUI_NOTE_OPEN_CMD:-}" ]; then
+  client="${SSH_CONNECTION%% *}"
+  export KANBAN_TUI_NOTE_OPEN_CMD="ssh -o BatchMode=yes -o ConnectTimeout=3 -o StrictHostKeyChecking=accept-new jeremy@${client} ~/.local/bin/open-uri {uri}"
+fi
+exec "$HOME/.local/bin/kanban-tui" "$@"

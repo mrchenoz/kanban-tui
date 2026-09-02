@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Open a URI (e.g. obsidian://open?vault=JCNotes&file=Note) in this machine's desktop session.
+# Meant to be called over SSH by the kanban-tui board host, where no display exists.
+set -u
+uri="${1:?usage: open-uri <uri>}"
+case "$(uname -s)" in
+  Darwin) exec open "$uri" ;;
+  *)
+    export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+    if [ -z "${WAYLAND_DISPLAY:-}" ]; then
+      for s in "$XDG_RUNTIME_DIR"/wayland-*; do
+        case "$s" in *.lock) ;; *) [ -S "$s" ] && export WAYLAND_DISPLAY="$(basename "$s")" && break ;; esac
+      done
+    fi
+    export DISPLAY="${DISPLAY:-:0}"
+    exec xdg-open "$uri" ;;
+esac
