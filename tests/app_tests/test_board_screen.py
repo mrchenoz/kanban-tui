@@ -10,6 +10,7 @@ from kanban_tui.modal.modal_board_screen import (
     ModalBoardOverviewScreen,
     ModalNewBoardScreen,
 )
+from kanban_tui.modal.modal_log_screen import ModalLogViewScreen
 from kanban_tui.modal.modal_task_screen import ModalTaskEditScreen
 from kanban_tui.screens.board_screen import BoardScreen
 from kanban_tui.widgets.board_widgets import KanbanBoard
@@ -541,3 +542,111 @@ async def test_task_card_task_id_with_long_title(test_app: KanbanTui):
         strip = card.render_lines(Region(0, 0, card.size.width, 1))[0]
         assert "#6" in strip.text
         assert str(card.query_one(".label-title", Label).content) == long_title
+
+
+async def test_task_card_open_note_from_metadata(test_app: KanbanTui, monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        "kanban_tui.widgets.task_card.subprocess.Popen",
+        lambda args, **kwargs: calls.append(args),
+    )
+    monkeypatch.setenv("KANBAN_TUI_NOTE_VAULT", "TestVault")
+    test_app.backend.create_new_task(
+        title="With note",
+        description="",
+        category=None,
+        column=1,
+        metadata={"note": "Grade Y9 Maths Tests"},
+    )
+    async with test_app.run_test(size=APP_SIZE) as pilot:
+        card = pilot.app.screen.query_one("#taskcard_6", TaskCard)
+        card.focus()
+        await pilot.pause()
+        await pilot.press("o")
+        assert calls
+        assert calls[0][0] == "xdg-open"
+        assert calls[0][1] == (
+            "obsidian://open?vault=TestVault&file=Grade%20Y9%20Maths%20Tests"
+        )
+
+
+async def test_task_card_open_note_falls_back_to_wikilink(
+    test_app: KanbanTui, monkeypatch
+):
+    calls = []
+    monkeypatch.setattr(
+        "kanban_tui.widgets.task_card.subprocess.Popen",
+        lambda args, **kwargs: calls.append(args),
+    )
+    monkeypatch.delenv("KANBAN_TUI_NOTE_VAULT", raising=False)
+    test_app.backend.create_new_task(
+        title="With wikilink",
+        description="See [[0908 Learning Tasks|the plan]] for details",
+        category=None,
+        column=1,
+    )
+    async with test_app.run_test(size=APP_SIZE) as pilot:
+        card = pilot.app.screen.query_one("#taskcard_6", TaskCard)
+        card.focus()
+        await pilot.pause()
+        await pilot.press("o")
+        assert calls
+        assert "file=0908%20Learning%20Tasks" in calls[0][1]
+
+
+async def test_task_card_open_note_without_note_notifies(
+    test_app: KanbanTui, monkeypatch
+):
+    calls = []
+    monkeypatch.setattr(
+        "kanban_tui.widgets.task_card.subprocess.Popen",
+        lambda args, **kwargs: calls.append(args),
+    )
+    async with test_app.run_test(size=APP_SIZE) as pilot:
+        # fixture task "Task_ready_0" has description "Hallo" - no wikilink, no metadata
+        card = pilot.app.screen.query_one("#taskcard_1", TaskCard)
+        card.focus()
+        await pilot.pause()
+        await pilot.press("o")
+        assert not calls
+        assert card.get_note_name() is None
+
+
+async def test_task_card_open_log_shows_latest_in_modal(
+    test_app: KanbanTui, monkeypatch, tmp_path
+):
+    log_rel = "kanban-tui/logs/2026-09-01-test.md"
+    log_file = tmp_path / log_rel
+    log_file.parent.mkdir(parents=True)
+    log_file.write_text("# 2026-09-01 - test log")
+    monkeypatch.setenv("KANBAN_TUI_LOGS_ROOT", tmp_path.as_posix())
+
+    test_app.backend.create_new_task(
+        title="With log",
+        description="",
+        category=None,
+        column=1,
+        metadata={"logs": ["older.md", log_rel]},
+    )
+    async with test_app.run_test(size=APP_SIZE) as pilot:
+        card = pilot.app.screen.query_one("#taskcard_6", TaskCard)
+        card.focus()
+        await pilot.pause()
+        await pilot.press("v")
+        await pilot.pause()
+        assert isinstance(pilot.app.screen, ModalLogViewScreen)
+        assert pilot.app.screen.log_path == log_file
+        # escape closes the modal and returns to the board
+        await pilot.press("escape")
+        await pilot.pause()
+        assert not isinstance(pilot.app.screen, ModalLogViewScreen)
+
+
+async def test_task_card_open_log_without_log_notifies(test_app: KanbanTui):
+    async with test_app.run_test(size=APP_SIZE) as pilot:
+        card = pilot.app.screen.query_one("#taskcard_1", TaskCard)
+        card.focus()
+        await pilot.pause()
+        await pilot.press("v")
+        await pilot.pause()
+        assert not isinstance(pilot.app.screen, ModalLogViewScreen)
