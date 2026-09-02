@@ -1840,3 +1840,33 @@ def test_task_create_metadata_invalid_format(test_app):
         )
         assert result.exit_code != 0
         assert "expected KEY=VALUE" in result.output
+
+
+def test_task_list_json_keeps_brackets(test_app):
+    """``[[wikilinks]]`` in descriptions must survive ``--json`` output verbatim.
+
+    Regression: rich markup ate ``[rovr migration]`` as a tag and printed ``[]``.
+    """
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            cli,
+            args=[
+                "task",
+                "create",
+                "Linked task",
+                "--description",
+                "[[rovr migration]] see [red]not markup[/]",
+            ],
+            obj=test_app,
+        )
+        assert result.exit_code == 0
+        result = runner.invoke(cli, args=["task", "list", "--json"], obj=test_app)
+        assert result.exit_code == 0
+        import json
+
+        tasks = json.loads(result.output)
+        linked = [task for task in tasks if task["title"] == "Linked task"]
+        assert len(linked) == 1
+        assert linked[0]["description"] == "[[rovr migration]] see [red]not markup[/]"
+        assert "[[rovr migration]]" in result.output

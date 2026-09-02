@@ -593,5 +593,10 @@ def build_info_table() -> Table:
     return table
 
 
-def print_to_console(text: RenderableType):
-    Console(soft_wrap=True, width=150).print(text, no_wrap=False, width=150)
+def print_to_console(text: RenderableType, markup: bool = True):
+    """Print via rich. Pass ``markup=False`` for verbatim text such as JSON, otherwise
+    rich treats ``[...]`` (e.g. ``[[wikilinks]]`` in descriptions) as markup tags and
+    strips them."""
+    Console(soft_wrap=True, width=150).print(
+        text, no_wrap=False, width=150, markup=markup, highlight=markup
+    )

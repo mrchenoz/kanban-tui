@@ -140,7 +140,7 @@ def list_tasks(
             json_str = task_list.dump_json(
                 tasks, indent=4, exclude_none=True, exclude_defaults=True
             ).decode("utf-8")
-            print_to_console(json_str)
+            print_to_console(json_str, markup=False)
         else:
             for task in tasks:
                 print_to_console(task)
