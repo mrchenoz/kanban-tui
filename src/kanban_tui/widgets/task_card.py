@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import re
+import shlex
 import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
@@ -12,6 +13,7 @@ from kanban_tui.config import Backends, MovementModes
 if TYPE_CHECKING:
     from kanban_tui.app import KanbanTui
 
+from rich.markup import escape
 from rich.text import Text
 from textual import on, work
 from textual.app import ComposeResult
@@ -195,11 +197,53 @@ class TaskCard(Vertical):
             return
         vault = os.getenv("KANBAN_TUI_NOTE_VAULT", "JCNotes")
         uri = f"obsidian://open?vault={quote(vault)}&file={quote(name)}"
-        subprocess.Popen(
-            ["xdg-open", uri],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        command = self._note_open_command(uri)
+        if command is None:
+            self.app.copy_to_clipboard(uri)
+            self.notify(
+                title="No display on this machine",
+                message=(
+                    "Running over SSH? The note URI was copied to your clipboard. "
+                    "Set [$success]KANBAN_TUI_NOTE_OPEN_CMD[/] to open notes elsewhere."
+                ),
+                severity="warning",
+                timeout=8,
+            )
+            return
+        try:
+            subprocess.Popen(
+                command,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except OSError as exc:
+            self.notify(
+                title="Could not open note",
+                message=escape(str(exc)),
+                severity="error",
+            )
+            return
+        self.notify(title="Opening note", message=escape(name))
+
+    @staticmethod
+    def _note_open_command(uri: str) -> list[str] | None:
+        """Command that opens ``uri`` here, or ``None`` if this machine has no display.
+
+        ``KANBAN_TUI_NOTE_OPEN_CMD`` wins when set: a command line whose ``{uri}``
+        placeholder is replaced (appended when absent). This is how a TUI running
+        over SSH hands the note back to the machine the user is sitting at, e.g.
+        ``ssh me@desktop env WAYLAND_DISPLAY=wayland-1 xdg-open {uri}``. Without it,
+        ``xdg-open`` is used when ``DISPLAY`` or ``WAYLAND_DISPLAY`` is set.
+        """
+        template = os.getenv("KANBAN_TUI_NOTE_OPEN_CMD", "").strip()
+        if template:
+            args = shlex.split(template)
+            if not any("{uri}" in arg for arg in args):
+                args.append("{uri}")
+            return [arg.replace("{uri}", uri) for arg in args]
+        if os.getenv("DISPLAY") or os.getenv("WAYLAND_DISPLAY"):
+            return ["xdg-open", uri]
+        return None
 
     def action_open_log(self) -> None:
         logs = self.task_.get_metadata("logs") or []
