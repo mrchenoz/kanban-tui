@@ -4,6 +4,10 @@ from xdg_base_dirs import xdg_config_home, xdg_data_home
 
 DEFAULT_COLUMN_DICT = {"Ready": True, "Doing": True, "Done": True, "Archive": False}
 
+# Sentinel for the board category filter: show tasks that have no category.
+# Real category ids start at 1, so 0 is never a category.
+UNCATEGORIZED_FILTER_ID = 0
+
 
 def _create_kanban_tui_dirs(root: Path) -> Path:
     directory = root / "kanban_tui"

@@ -20,6 +20,7 @@ from kanban_tui.config import (
     Settings,
     init_config,
 )
+from kanban_tui.constants import UNCATEGORIZED_FILTER_ID
 from kanban_tui.modal.modal_auth_screen import ModalAuthScreen
 from kanban_tui.screens.board_screen import BoardScreen
 from kanban_tui.screens.overview_screen import OverViewScreen
@@ -56,6 +57,9 @@ class KanbanTui(App[str | None]):
     board_list: reactive[list[Board]] = reactive([], init=False)
     column_list: reactive[list[Column]] = reactive([], init=False)
     active_board: reactive[Board | None] = reactive(None, init=False)
+    # Board category filter: None shows every task, UNCATEGORIZED_FILTER_ID shows
+    # tasks without a category, any other value is a category id.
+    category_filter: reactive[int | None] = reactive(None, init=False)
 
     def __init__(
         self,
@@ -191,6 +195,11 @@ class KanbanTui(App[str | None]):
 
     def watch_active_board(self, old_board: Board | None, new_board: Board):
         if self.active_board:
+            # Restore this board's remembered filter without re-saving it
+            self.set_reactive(
+                KanbanTui.category_filter,
+                self.config.get_category_filter(self.active_board.board_id),
+            )
             match self.config.backend.mode:
                 case Backends.SQLITE:
                     self.config.set_active_board(
@@ -210,6 +219,10 @@ class KanbanTui(App[str | None]):
 
     def watch_column_list(self):
         self.update_task_list()
+
+    def watch_category_filter(self, new_filter: int | None):
+        if self.active_board:
+            self.config.set_category_filter(self.active_board.board_id, new_filter)
 
     def watch_theme(self, new_theme: str):
         self.config.set_theme(new_theme)
@@ -280,8 +293,23 @@ class KanbanTui(App[str | None]):
     def visible_column_dict(self) -> dict[int, str]:
         return {col.column_id: col.name for col in self.column_list if col.visible}
 
+    def task_matches_filter(self, task: Task) -> bool:
+        if self.category_filter is None:
+            return True
+        if self.category_filter == UNCATEGORIZED_FILTER_ID:
+            return task.category is None
+        return task.category == self.category_filter
+
+    @property
+    def filtered_task_list(self) -> list[Task]:
+        """Tasks on the active board that pass the category filter."""
+        return [task for task in self.task_list if self.task_matches_filter(task)]
+
     @property
     def visible_task_list(self) -> list[Task]:
+        """Filtered tasks that sit in a visible column."""
         return [
-            task for task in self.task_list if task.column in self.visible_column_dict
+            task
+            for task in self.filtered_task_list
+            if task.column in self.visible_column_dict
         ]

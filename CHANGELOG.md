@@ -2,6 +2,8 @@
 
 ## Unreleased
 ### Added
+- Category filter on the board: `f` opens a sidebar listing All / each category / No category with task counts; picking one shows only those cards and the board frame reads `Filter: <name> (shown/total)`. The choice is stored per board in the config (`board.category_filters`) and restored on the next start.
+- `--category` option on `task list`, taking a category id or name (`none` for uncategorised tasks). Combines with `--column`, `--board` and `--actionable`, and is available to agents through the MCP server since it wraps the CLI.
 - Show the task id (e.g. `#40`) in the frame of each task card on the board, so tasks can be referenced by the same id used on the CLI. Can be disabled via the new config option `task.show_task_id`
 - `--metadata KEY=VALUE` option (repeatable) on `task create` and `task update`. JSON values are parsed, `KEY=` removes a key on update, and other keys are left untouched. Exposes the existing tasks `metadata` column to the CLI so agents and scripts can attach structured references (e.g. a note name or log paths) to a card.
 - `o` / `v` keybinds on task cards. `o` opens the task's note in Obsidian via an `obsidian://` URI (from `metadata.note`, falling back to the first `[[wikilink]]` in the description; vault name from `KANBAN_TUI_NOTE_VAULT`, default `JCNotes`). `v` shows the latest entry of `metadata.logs` in a Markdown viewer modal over the board (`Esc`/`q` closes; relative paths resolve against `KANBAN_TUI_LOGS_ROOT`).
