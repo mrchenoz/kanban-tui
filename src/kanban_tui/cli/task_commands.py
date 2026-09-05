@@ -40,6 +40,31 @@ def _parse_metadata_option(metadata: tuple[str, ...]) -> dict[str, Any] | None:
     return parsed
 
 
+_NO_CATEGORY_WORDS = ("none", "null", "uncategorized", "uncategorised")
+
+
+def _resolve_category_filter(app: KanbanTui, value: str) -> tuple[bool, int | None]:
+    """Turn a ``--category`` value into a category id.
+
+    Accepts a numeric id, a category name (case-insensitive) or one of
+    ``none``/``null``/``uncategorized`` for tasks without a category.
+    Returns ``(found, category_id)``; ``found`` is False when nothing matches.
+    """
+    text = value.strip()
+    if text.lower() in _NO_CATEGORY_WORDS:
+        return True, None
+    categories = app.backend.get_all_categories()
+    if text.isdigit():
+        wanted = int(text)
+        if any(c.category_id == wanted for c in categories):
+            return True, wanted
+        return False, None
+    for category in categories:
+        if category.name.lower() == text.lower():
+            return True, category.category_id
+    return False, None
+
+
 @click.group()
 @click.pass_obj
 def task(app: KanbanTui):
@@ -83,8 +108,22 @@ def task(app: KanbanTui):
     type=click.BOOL,
     help="Show only actionable tasks (not blocked by unfinished dependencies)",
 )
+@click.option(
+    "--category",
+    default=None,
+    type=click.STRING,
+    help=(
+        "Show only tasks in this category, given as id or name "
+        "(`none` for tasks without a category)"
+    ),
+)
 def list_tasks(
-    app: KanbanTui, json: bool, column: None | int, board: None | int, actionable: bool
+    app: KanbanTui,
+    json: bool,
+    column: None | int,
+    board: None | int,
+    actionable: bool,
+    category: str | None,
 ):
     """
     List all tasks on active board, agents should prefer --json flag
@@ -93,6 +132,13 @@ def list_tasks(
     if not boards:
         print_to_console("No boards created yet.")
         return
+
+    category_filter: int | None = None
+    if category is not None:
+        found, category_filter = _resolve_category_filter(app, category)
+        if not found:
+            print_to_console(f"[red]There is no category {category!r}.[/]")
+            return
 
     if column:
         tasks = app.backend.get_tasks_by_column(column_id=column)
@@ -126,6 +172,12 @@ def list_tasks(
                 for dep_id in task.blocked_by
             )
         ]
+
+    if category is not None and tasks:
+        tasks = [task for task in tasks if task.category == category_filter]
+        if not tasks:
+            print_to_console(f"No tasks in category {category!r}.")
+            return
 
     if not tasks and column:
         print_to_console(f"No tasks in column with column_id = {column}.")

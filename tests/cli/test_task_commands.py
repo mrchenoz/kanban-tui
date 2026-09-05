@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 
 import pytest
@@ -295,6 +296,74 @@ def test_task_list_no_task(no_task_app):
         result = runner.invoke(cli, args=["task", "list"], obj=no_task_app)
         assert result.exit_code == 0
         assert result.output == "No tasks created yet.\n"
+
+
+def _listed_ids(output: str) -> list[int]:
+    return [task["task_id"] for task in json.loads(output)]
+
+
+def test_task_list_category_by_id(test_app):
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            cli, args=["task", "list", "--json", "--category", "1"], obj=test_app
+        )
+        assert result.exit_code == 0
+        assert _listed_ids(result.output) == [1, 5]
+
+
+def test_task_list_category_by_name_case_insensitive(test_app):
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            cli, args=["task", "list", "--json", "--category", "Blue"], obj=test_app
+        )
+        assert result.exit_code == 0
+        assert _listed_ids(result.output) == [2]
+
+
+def test_task_list_category_none(test_app):
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            cli, args=["task", "list", "--json", "--category", "none"], obj=test_app
+        )
+        assert result.exit_code == 0
+        assert _listed_ids(result.output) == [3]
+
+
+def test_task_list_category_combines_with_column(test_app):
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            cli,
+            args=["task", "list", "--json", "--column", "1", "--category", "red"],
+            obj=test_app,
+        )
+        assert result.exit_code == 0
+        assert _listed_ids(result.output) == [1]
+
+
+def test_task_list_category_no_match(test_app):
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            cli,
+            args=["task", "list", "--column", "1", "--category", "green"],
+            obj=test_app,
+        )
+        assert result.exit_code == 0
+        assert result.output == "No tasks in category 'green'.\n"
+
+
+def test_task_list_category_unknown(test_app):
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            cli, args=["task", "list", "--category", "purple"], obj=test_app
+        )
+        assert result.exit_code == 0
+        assert result.output == "There is no category 'purple'.\n"
 
 
 def test_task_create_minimal(test_app):
