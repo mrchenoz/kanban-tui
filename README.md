@@ -57,6 +57,9 @@ Supports only a subset of features
 <details><summary>Multi Board Support</summary>
 
 With version v0.4.0 kanban-tui allows the creation of multiple boards.
+Use `f` on the `Kanban Board`-Tab to filter the board down to one category (or to
+tasks without a category); the choice is remembered per board between sessions.
+
 Use `B` on the `Kanban Board`-Tab to get an overview over all Boards including
 the amount of columns, tasks and the earliest Due Date.
 </details>

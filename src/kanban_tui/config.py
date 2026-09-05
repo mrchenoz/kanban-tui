@@ -40,6 +40,9 @@ class BoardSettings(BaseModel):
     theme: str = Field(default="dracula")
     columns_in_view: int = Field(default=3)
     auto_refresh_interval: int = Field(default=0)
+    # Remembered category filter per board, keyed by board id (TOML keys are
+    # strings). A missing key means "show all"; 0 means "tasks without category".
+    category_filters: dict[str, int] = Field(default_factory=dict)
 
 
 class TaskSettings(BaseModel):
@@ -101,6 +104,17 @@ class Settings(BaseSettings):
 
     def set_auto_refresh_interval(self, new_interval: int) -> None:
         self.board.auto_refresh_interval = new_interval
+        self.save()
+
+    def get_category_filter(self, board_id: int) -> int | None:
+        return self.board.category_filters.get(str(board_id))
+
+    def set_category_filter(self, board_id: int, category_id: int | None) -> None:
+        key = str(board_id)
+        if category_id is None:
+            self.board.category_filters.pop(key, None)
+        else:
+            self.board.category_filters[key] = category_id
         self.save()
 
     def set_task_always_expanded(self, new_value: bool) -> None:

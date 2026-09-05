@@ -14,6 +14,7 @@ from kanban_tui.modal.modal_log_screen import ModalLogViewScreen
 from kanban_tui.modal.modal_task_screen import ModalTaskEditScreen
 from kanban_tui.screens.board_screen import BoardScreen
 from kanban_tui.widgets.board_widgets import KanbanBoard
+from kanban_tui.widgets.filter_sidebar import CategoryFilterOverlay, CategoryOptionList
 from kanban_tui.widgets.modal_task_widgets import VimSelect
 from kanban_tui.widgets.task_card import TaskCard
 from kanban_tui.widgets.task_column import Column
@@ -725,3 +726,93 @@ async def test_task_card_open_note_without_display_copies_uri(
         await pilot.press("o")
         assert calls == []
         assert copied == ["obsidian://open?vault=TestVault&file=Plan"]
+
+
+def _card_ids(pilot) -> set[int]:
+    return {card.task_.task_id for card in pilot.app.screen.query(TaskCard)}
+
+
+async def test_category_filter_overlay_toggle(test_app: KanbanTui):
+    async with test_app.run_test(size=APP_SIZE) as pilot:
+        overlay = pilot.app.screen.query_one(CategoryFilterOverlay)
+        assert not overlay.display
+
+        await pilot.press("f")
+        assert overlay.display
+        assert isinstance(pilot.app.focused, CategoryOptionList)
+        # All, red, green, blue, No category
+        assert pilot.app.focused.option_count == 5
+        assert pilot.app.focused.highlighted == 0
+
+        await pilot.press("escape")
+        assert not overlay.display
+        assert isinstance(pilot.app.focused, TaskCard)
+
+
+async def test_category_filter_shows_one_category(test_app: KanbanTui):
+    async with test_app.run_test(size=APP_SIZE) as pilot:
+        assert _card_ids(pilot) == {1, 2, 3, 4, 5}
+        board = pilot.app.screen.query_one(KanbanBoard)
+        assert board.border_subtitle == ""
+
+        # pick "red" (category 1)
+        await pilot.press("f", "down", "enter")
+        await pilot.pause()
+        assert pilot.app.category_filter == 1
+        assert _card_ids(pilot) == {1, 5}
+        assert "red" in board.border_subtitle
+        assert "(2/5)" in board.border_subtitle
+        assert not pilot.app.screen.query_one(CategoryFilterOverlay).display
+
+        # tasks without category
+        await pilot.press("f", "end", "enter")
+        await pilot.pause()
+        assert pilot.app.category_filter == 0
+        assert _card_ids(pilot) == {3}
+        assert "No category" in board.border_subtitle
+
+        # back to all
+        await pilot.press("f", "home", "enter")
+        await pilot.pause()
+        assert pilot.app.category_filter is None
+        assert _card_ids(pilot) == {1, 2, 3, 4, 5}
+        assert board.border_subtitle == ""
+
+
+async def test_category_filter_reopens_on_current_choice(test_app: KanbanTui):
+    async with test_app.run_test(size=APP_SIZE) as pilot:
+        await pilot.press("f", "down", "down", "enter")
+        await pilot.pause()
+        assert pilot.app.category_filter == 2
+
+        await pilot.press("f")
+        assert pilot.app.focused.highlighted == 2
+        await pilot.press("escape")
+
+
+async def test_category_filter_survives_refresh_and_new_task(test_app: KanbanTui):
+    async with test_app.run_test(size=APP_SIZE) as pilot:
+        await pilot.press("f", "down", "enter")
+        await pilot.pause()
+        assert _card_ids(pilot) == {1, 5}
+
+        await pilot.press("r")
+        await pilot.pause()
+        assert _card_ids(pilot) == {1, 5}
+
+
+async def test_category_filter_persists_between_sessions(
+    test_app: KanbanTui, test_config_path: str, test_database_path: str
+):
+    async with test_app.run_test(size=APP_SIZE) as pilot:
+        await pilot.press("f", "down", "enter")
+        await pilot.pause()
+    assert test_app.config.board.category_filters == {"1": 1}
+
+    second_app = KanbanTui(
+        config_path=test_config_path, database_path=test_database_path
+    )
+    async with second_app.run_test(size=APP_SIZE) as pilot:
+        assert pilot.app.category_filter == 1
+        assert _card_ids(pilot) == {1, 5}
+        assert "red" in pilot.app.screen.query_one(KanbanBoard).border_subtitle

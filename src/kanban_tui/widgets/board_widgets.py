@@ -16,8 +16,10 @@ from textual.widgets import Label
 
 from kanban_tui.classes.task import Task
 from kanban_tui.config import Backends
+from kanban_tui.constants import UNCATEGORIZED_FILTER_ID
 from kanban_tui.modal.modal_board_screen import ModalBoardOverviewScreen
 from kanban_tui.modal.modal_task_screen import ModalTaskEditScreen
+from kanban_tui.widgets.filter_sidebar import CategoryFilterOverlay
 from kanban_tui.widgets.task_card import TaskCard
 from kanban_tui.widgets.task_column import Column
 
@@ -33,6 +35,7 @@ class KanbanBoard(HorizontalScroll):
         Binding("l, right", "navigation('right')", "Right", show=False),
         Binding("B", "show_boards", "Show Boards", show=True, priority=True),
         Binding("enter", "confirm_move", "Confirm Move", show=True, priority=True),
+        Binding("f", "toggle_filter", "Filter", show=True, priority=True),
     ]
     selected_task: reactive[Task | None] = reactive(None)
     target_column: reactive[int | None] = reactive(None, bindings=True, init=False)
@@ -53,7 +56,7 @@ class KanbanBoard(HorizontalScroll):
             if column.visible:
                 column_tasks = [
                     task
-                    for task in self.app.task_list
+                    for task in self.app.filtered_task_list
                     if task.column == column.column_id
                 ]
                 await self.mount(
@@ -63,7 +66,33 @@ class KanbanBoard(HorizontalScroll):
                         id_num=column.column_id,
                     )
                 )
+        self.update_filter_subtitle()
         self.get_first_card()
+
+    # Category filter
+    def action_toggle_filter(self) -> None:
+        self.screen.query_one(CategoryFilterOverlay).toggle()
+
+    def filter_description(self) -> str:
+        """Human name of the active category filter, or '' when showing all."""
+        category_filter = self.app.category_filter
+        if category_filter is None:
+            return ""
+        if category_filter == UNCATEGORIZED_FILTER_ID:
+            return "No category"
+        try:
+            return self.app.backend.get_category_by_id(category_filter).name
+        except Exception:
+            return f"category {category_filter}"
+
+    def update_filter_subtitle(self) -> None:
+        name = self.filter_description()
+        if not name:
+            self.border_subtitle = ""
+            return
+        shown = len(self.app.filtered_task_list)
+        total = len(self.app.task_list)
+        self.border_subtitle = f" Filter: {name} ({shown}/{total}) · f to change "
 
     async def refresh_columns(self) -> None:
         visible_columns = [column for column in self.app.column_list if column.visible]
@@ -86,7 +115,7 @@ class KanbanBoard(HorizontalScroll):
             return
 
         tasks_by_column: dict[int, list[Task]] = defaultdict(list)
-        for task in self.app.task_list:
+        for task in self.app.filtered_task_list:
             tasks_by_column[task.column].append(task)
 
         for column_model, column_widget in zip(
@@ -98,6 +127,7 @@ class KanbanBoard(HorizontalScroll):
                 column_widget,
                 desired_tasks,
             )
+        self.update_filter_subtitle()
 
         if focused_task_id is not None:
             focused_card = self.query_one_optional(
@@ -633,6 +663,12 @@ class KanbanBoard(HorizontalScroll):
                 self.notify(
                     title="Welcome to Kanban Tui",
                     message="Looks like you are new, press [blue]n[/] to create your first Card",
+                )
+            elif not self.app.filtered_task_list:
+                self.notify(
+                    title="Category filter",
+                    message="No tasks match the filter, press [blue]f[/] to change it",
+                    severity="warning",
                 )
         else:
             self.can_focus = False

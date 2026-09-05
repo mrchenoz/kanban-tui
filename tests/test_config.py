@@ -77,6 +77,7 @@ def test_default_config(test_config: Settings, test_database_path: str) -> None:
             "theme": "dracula",
             "columns_in_view": 3,
             "auto_refresh_interval": 0,
+            "category_filters": {},
         },
         "task": {
             "always_expanded": False,
@@ -113,3 +114,15 @@ def test_config_task_append_mode_update(test_config: Settings) -> None:
 
     updated_config = Settings()
     assert updated_config.task.append_mode == TaskAppendModes.BOTTOM
+
+
+def test_config_category_filter_roundtrip(test_config: Settings) -> None:
+    assert test_config.get_category_filter(1) is None
+
+    test_config.set_category_filter(1, 2)
+    assert test_config.get_category_filter(1) == 2
+    assert Settings().get_category_filter(1) == 2
+
+    test_config.set_category_filter(1, None)
+    assert test_config.get_category_filter(1) is None
+    assert Settings().board.category_filters == {}
