@@ -2,13 +2,15 @@
 # Board TUI wrapper. Pressing `o` on a card must open the note where the *user* sits:
 #  - launched over SSH: hand the obsidian:// URI back to the SSH client (popeye, a Mac, ...)
 #    by running ~/.local/bin/open-uri there. Client address comes from SSH_CONNECTION.
+#    The login user on the client defaults to this username; map exceptions per client in
+#    ~/.ssh/config on this host (e.g. "Host 192.168.0.218" / "User joz" for the Mac Studio).
 #  - launched locally on this desktop: leave KANBAN_TUI_NOTE_OPEN_CMD unset -> xdg-open here.
 # Launch from another machine:
-#   ssh jeremy@p5jc -t tmux new-session -A -s kanban ~/.local/bin/ktui-board
+#   ssh -4 jeremy@p5jc -t tmux new-session -A -s kanban ~/.local/bin/ktui-board
 export KANBAN_TUI_NOTE_VAULT="${KANBAN_TUI_NOTE_VAULT:-JCNotes}"
 export KANBAN_TUI_LOGS_ROOT="${KANBAN_TUI_LOGS_ROOT:-/home/jeremy/Documents/PKM/JCNotes/JCNotes}"
 if [ -n "${SSH_CONNECTION:-}" ] && [ -z "${KANBAN_TUI_NOTE_OPEN_CMD:-}" ]; then
   client="${SSH_CONNECTION%% *}"
-  export KANBAN_TUI_NOTE_OPEN_CMD="ssh -o BatchMode=yes -o ConnectTimeout=3 -o StrictHostKeyChecking=accept-new jeremy@${client} ~/.local/bin/open-uri {uri}"
+  export KANBAN_TUI_NOTE_OPEN_CMD="ssh -o BatchMode=yes -o ConnectTimeout=3 -o StrictHostKeyChecking=accept-new ${client} ~/.local/bin/open-uri \\'{uri}\\'"
 fi
 exec "$HOME/.local/bin/kanban-tui" "$@"

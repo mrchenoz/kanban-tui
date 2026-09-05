@@ -232,7 +232,8 @@ class TaskCard(Vertical):
         ``KANBAN_TUI_NOTE_OPEN_CMD`` wins when set: a command line whose ``{uri}``
         placeholder is replaced (appended when absent). This is how a TUI running
         over SSH hands the note back to the machine the user is sitting at, e.g.
-        ``ssh me@desktop env WAYLAND_DISPLAY=wayland-1 xdg-open {uri}``. Without it,
+        ``ssh me@desktop env WAYLAND_DISPLAY=wayland-1 xdg-open \\'{uri}\\'`` (quote the
+        placeholder when a remote shell parses the line: the URI holds ``?`` and ``&``). Without it,
         ``xdg-open`` is used when ``DISPLAY`` or ``WAYLAND_DISPLAY`` is set.
         """
         template = os.getenv("KANBAN_TUI_NOTE_OPEN_CMD", "").strip()
