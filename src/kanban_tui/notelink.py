@@ -29,6 +29,7 @@ from __future__ import annotations
 import json
 import os
 import platform
+import shutil
 import subprocess
 import sys
 import urllib.error
@@ -201,10 +202,27 @@ def notify_tap_main() -> int:
                 timeout=15,
             )
             return 0
+        if shutil.which("omarchy-notification-send"):
+            # Omarchy stores the click command with the toast, so a click from the
+            # notification history still opens the note, with nothing left waiting.
+            subprocess.run(
+                [
+                    "omarchy-notification-send",
+                    "--app-name",
+                    "kanban-tui",
+                    title,
+                    message,
+                    "--exec",
+                    "ktui-open-uri",
+                    click,
+                ],
+                check=True,
+                timeout=15,
+            )
+            return 0
         # notify-send prints the action key when the user picks it, nothing on
         # timeout. The key must be "default": daemons that draw no buttons
-        # (Omarchy's quickshell, mako, dunst) fire only the default action, on a
-        # click of the toast itself.
+        # (mako, dunst) fire only the default action, on a click of the toast.
         chosen = subprocess.run(
             ["notify-send", "--action=default=Open", "-t", "20000", title, message],
             capture_output=True,

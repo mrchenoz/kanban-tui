@@ -6,6 +6,10 @@ Fork versions carry a PEP 440 local label on the upstream release they are built
 
 ## Unreleased
 
+## 0.21.2+jc.3 — 2026-09-07
+### Changed
+- `ktui-notify-tap` uses Omarchy's own notification when `omarchy-notification-send` is on PATH: the click command (`ktui-open-uri <link>`) is stored with the toast, so clicking it later from the notification history still opens the note and no process is left waiting. Other daemons keep the `notify-send` default-action path.
+
 ## 0.21.2+jc.2 — 2026-09-07
 ### Fixed
 - `ktui-notify-tap` registers its notification action as `default`, not `open`. Daemons that draw no action buttons (Omarchy's quickshell, mako, dunst) only ever invoke the default action, on a click of the toast itself, so the Open click never reached the hook and the note never opened.

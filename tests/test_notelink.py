@@ -123,8 +123,31 @@ def test_open_uri_command_on_mac(monkeypatch):
     assert env == {}
 
 
+def test_notify_tap_uses_omarchy_exec_when_present(monkeypatch):
+    monkeypatch.setattr(notelink.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(notelink.shutil, "which", lambda name: "/usr/bin/" + name)
+    monkeypatch.setenv("NTFY_RAW", json.dumps({"click": URI}))
+    monkeypatch.setenv("NTFY_TITLE", "PB")
+    monkeypatch.setenv("NTFY_MESSAGE", "tap")
+    calls = []
+    monkeypatch.setattr(
+        notelink.subprocess,
+        "run",
+        lambda args, **kw: (
+            calls.append(args),
+            subprocess.CompletedProcess(args, 0, stdout="", stderr=""),
+        )[1],
+    )
+    assert notelink.notify_tap_main() == 0
+    (call,) = calls
+    assert call[0] == "omarchy-notification-send"
+    assert call[-3:] == ["--exec", "ktui-open-uri", URI]
+    assert "PB" in call and "tap" in call
+
+
 def test_notify_tap_opens_only_after_click(monkeypatch):
     monkeypatch.setattr(notelink.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(notelink.shutil, "which", lambda name: None)
     monkeypatch.setenv("NTFY_RAW", json.dumps({"click": URI}))
     monkeypatch.setenv("NTFY_TITLE", "PB")
     monkeypatch.setenv("NTFY_MESSAGE", "tap")
