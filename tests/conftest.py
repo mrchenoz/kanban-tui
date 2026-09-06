@@ -130,3 +130,11 @@ def test_app(no_task_app: KanbanTui) -> Generator[KanbanTui, None, None]:
         )
 
     yield no_task_app
+
+
+@pytest.fixture(autouse=True)
+def _no_ntfy_token(tmp_path_factory, monkeypatch):
+    """The developer's own ~/.config/ntfy/ktui-token must not leak into TUI tests."""
+    monkeypatch.setenv(
+        "KTUI_NTFY_TOKEN_FILE", str(tmp_path_factory.mktemp("ntfy") / "absent")
+    )

@@ -743,6 +743,48 @@ async def test_task_card_open_note_reports_failed_command(
         assert "ntfy 403" in toasts[0].message
 
 
+async def test_task_card_open_note_headless_sends_ntfy(
+    test_app: KanbanTui, monkeypatch, tmp_path
+):
+    """No display, no custom command, but an ntfy token: send the link, don't spawn."""
+    calls = []
+    monkeypatch.setattr(
+        "kanban_tui.widgets.task_card.subprocess.run",
+        lambda args, **kwargs: pytest.fail("no command should run"),
+    )
+    sent = []
+    monkeypatch.setattr(
+        "kanban_tui.widgets.task_card.notelink.send_note_link", sent.append
+    )
+    token = tmp_path / "ktui-token"
+    token.write_text("tk_test")
+    monkeypatch.setenv("KTUI_NTFY_TOKEN_FILE", str(token))
+    monkeypatch.setenv("KANBAN_TUI_NOTE_VAULT", "TestVault")
+    monkeypatch.delenv("KANBAN_TUI_NOTE_OPEN_CMD", raising=False)
+    monkeypatch.delenv("DISPLAY", raising=False)
+    monkeypatch.delenv("WAYLAND_DISPLAY", raising=False)
+    test_app.backend.create_new_task(
+        title="Headless note",
+        description="",
+        category=None,
+        column=1,
+        metadata={"note": "Plan"},
+    )
+    async with test_app.run_test(size=APP_SIZE) as pilot:
+        copied = []
+        monkeypatch.setattr(pilot.app, "copy_to_clipboard", copied.append)
+        card = pilot.app.screen.query_one("#taskcard_6", TaskCard)
+        card.focus()
+        await pilot.pause()
+        await pilot.press("o")
+        await pilot.app.workers.wait_for_complete()
+        await pilot.pause()
+        assert sent == ["obsidian://open?vault=TestVault&file=Plan"]
+        assert copied == [] and calls == []
+        toasts = list(pilot.app._notifications)
+        assert [t.title for t in toasts] == ["Note link sent"]
+
+
 async def test_task_card_open_note_without_display_copies_uri(
     test_app: KanbanTui, monkeypatch
 ):
