@@ -1,3 +1,4 @@
+import subprocess
 import sys
 
 import pytest
@@ -548,8 +549,11 @@ async def test_task_card_task_id_with_long_title(test_app: KanbanTui):
 async def test_task_card_open_note_from_metadata(test_app: KanbanTui, monkeypatch):
     calls = []
     monkeypatch.setattr(
-        "kanban_tui.widgets.task_card.subprocess.Popen",
-        lambda args, **kwargs: calls.append(args),
+        "kanban_tui.widgets.task_card.subprocess.run",
+        lambda args, **kwargs: (
+            calls.append(args),
+            subprocess.CompletedProcess(args, 0, stderr=""),
+        )[1],
     )
     monkeypatch.setenv("KANBAN_TUI_NOTE_VAULT", "TestVault")
     monkeypatch.setenv("DISPLAY", ":0")
@@ -578,8 +582,11 @@ async def test_task_card_open_note_falls_back_to_wikilink(
 ):
     calls = []
     monkeypatch.setattr(
-        "kanban_tui.widgets.task_card.subprocess.Popen",
-        lambda args, **kwargs: calls.append(args),
+        "kanban_tui.widgets.task_card.subprocess.run",
+        lambda args, **kwargs: (
+            calls.append(args),
+            subprocess.CompletedProcess(args, 0, stderr=""),
+        )[1],
     )
     monkeypatch.delenv("KANBAN_TUI_NOTE_VAULT", raising=False)
     monkeypatch.setenv("DISPLAY", ":0")
@@ -604,8 +611,11 @@ async def test_task_card_open_note_without_note_notifies(
 ):
     calls = []
     monkeypatch.setattr(
-        "kanban_tui.widgets.task_card.subprocess.Popen",
-        lambda args, **kwargs: calls.append(args),
+        "kanban_tui.widgets.task_card.subprocess.run",
+        lambda args, **kwargs: (
+            calls.append(args),
+            subprocess.CompletedProcess(args, 0, stderr=""),
+        )[1],
     )
     async with test_app.run_test(size=APP_SIZE) as pilot:
         # fixture task "Task_ready_0" has description "Hallo" - no wikilink, no metadata
@@ -613,6 +623,7 @@ async def test_task_card_open_note_without_note_notifies(
         card.focus()
         await pilot.pause()
         await pilot.press("o")
+        await pilot.app.workers.wait_for_complete()
         assert not calls
         assert card.get_note_name() is None
 
@@ -663,8 +674,11 @@ async def test_task_card_open_note_uses_custom_command(
     """KANBAN_TUI_NOTE_OPEN_CMD replaces xdg-open, with {uri} substituted."""
     calls = []
     monkeypatch.setattr(
-        "kanban_tui.widgets.task_card.subprocess.Popen",
-        lambda args, **kwargs: calls.append(args),
+        "kanban_tui.widgets.task_card.subprocess.run",
+        lambda args, **kwargs: (
+            calls.append(args),
+            subprocess.CompletedProcess(args, 0, stderr=""),
+        )[1],
     )
     monkeypatch.setenv("KANBAN_TUI_NOTE_VAULT", "TestVault")
     monkeypatch.setenv(
@@ -685,6 +699,7 @@ async def test_task_card_open_note_uses_custom_command(
         card.focus()
         await pilot.pause()
         await pilot.press("o")
+        await pilot.app.workers.wait_for_complete()
         assert calls == [
             [
                 "ssh",
@@ -697,14 +712,48 @@ async def test_task_card_open_note_uses_custom_command(
         ]
 
 
+async def test_task_card_open_note_reports_failed_command(
+    test_app: KanbanTui, monkeypatch
+):
+    """A custom command that exits non-zero shows an error toast with its stderr."""
+    monkeypatch.setattr(
+        "kanban_tui.widgets.task_card.subprocess.run",
+        lambda args, **kwargs: subprocess.CompletedProcess(
+            args, 1, stderr="ntfy 403: Forbidden\n"
+        ),
+    )
+    monkeypatch.setenv("KANBAN_TUI_NOTE_OPEN_CMD", "ktui-notify-note {uri}")
+    test_app.backend.create_new_task(
+        title="Remote note",
+        description="",
+        category=None,
+        column=1,
+        metadata={"note": "Plan"},
+    )
+    async with test_app.run_test(size=APP_SIZE) as pilot:
+        card = pilot.app.screen.query_one("#taskcard_6", TaskCard)
+        card.focus()
+        await pilot.pause()
+        await pilot.press("o")
+        await pilot.app.workers.wait_for_complete()
+        await pilot.pause()
+        toasts = list(pilot.app._notifications)
+        assert [n.severity for n in toasts] == ["error"]
+        assert toasts[0].title == "Note command failed (exit 1)"
+        assert "ntfy 403" in toasts[0].message
+
+
 async def test_task_card_open_note_without_display_copies_uri(
     test_app: KanbanTui, monkeypatch
 ):
     """No display and no custom command (e.g. plain SSH): copy the URI, don't spawn."""
     calls = []
     monkeypatch.setattr(
-        "kanban_tui.widgets.task_card.subprocess.Popen",
-        lambda args, **kwargs: calls.append(args),
+        "kanban_tui.widgets.task_card.subprocess.run",
+        lambda args, **kwargs: (
+            calls.append(args),
+            subprocess.CompletedProcess(args, 0, stderr=""),
+        )[1],
     )
     monkeypatch.setenv("KANBAN_TUI_NOTE_VAULT", "TestVault")
     monkeypatch.delenv("KANBAN_TUI_NOTE_OPEN_CMD", raising=False)
@@ -724,6 +773,7 @@ async def test_task_card_open_note_without_display_copies_uri(
         card.focus()
         await pilot.pause()
         await pilot.press("o")
+        await pilot.app.workers.wait_for_complete()
         assert calls == []
         assert copied == ["obsidian://open?vault=TestVault&file=Plan"]
 

@@ -1,12 +1,17 @@
 # contrib — glue for running the board over SSH
 
-The board database lives on one host (the "board host"). Other machines run the TUI over
-SSH. Two small scripts make the `o` (open note) and `v` (view log) keybinds work in that setup.
+The board database lives on one headless host (the "board host"). Other machines run the TUI
+over SSH. Pressing `o` on a card there cannot open Obsidian on the host, so the link is sent
+as a notification instead; the user taps it on whatever device is in hand and Obsidian opens
+**there**. The host only ever connects outward (to an [ntfy](https://ntfy.sh) server); it holds
+no credentials for any desktop. `v` (view log) just needs the vault path.
 
 | Script | Lives on | Does |
 |---|---|---|
-| `ktui-board` | the board host, `~/.local/bin/` | Launches `kanban-tui`. When started over SSH it sets `KANBAN_TUI_NOTE_OPEN_CMD` to `ssh <ssh client> ~/.local/bin/open-uri \'{uri}\'`, so `o` opens the note on the machine you are sitting at. The placeholder is quoted because the client's login shell parses that line: unquoted, `&` in the URI splits the command and zsh rejects `?` as a failed glob. Sets `KANBAN_TUI_LOGS_ROOT` to the vault so `v` finds logs. Started locally it leaves the opener alone. |
-| `open-uri` | every client (Linux or macOS), `~/.local/bin/` | Opens a URI in that machine's desktop session: `open` on macOS, `xdg-open` with the Wayland socket found on Linux. |
+| `ktui-board` | board host, `~/.local/bin/` | Launches `kanban-tui` with `KANBAN_TUI_NOTE_OPEN_CMD` set to `ktui-notify-note {uri}` (unless already set) and `KANBAN_TUI_LOGS_ROOT` pointing at the vault so `v` finds logs. |
+| `ktui-notify-note` | board host, `~/.local/bin/` | Posts the `obsidian://` URI to an ntfy topic as a notification (title = note name, click = URI). Python stdlib only. Token in `~/.config/ntfy/ktui-token`; server/topic via `KTUI_NTFY_URL` / `KTUI_NTFY_TOPIC`. Non-zero exit on failure, which the TUI shows. |
+| `ktui-notify-tap` | each desktop, `~/.local/bin/` | Hook for the ntfy CLI subscriber: shows the link as a desktop notification and opens it only when clicked (`notify-send --action` + `open-uri` on Linux, `terminal-notifier -open` on macOS). Ignores anything that is not `obsidian://`. Phones use the ntfy app instead; it follows the click URL natively. |
+| `open-uri` | each desktop, `~/.local/bin/` | Opens a URI in that machine's desktop session: `open` on macOS, `xdg-open` with the Wayland socket found on Linux. |
 
 Launch from a client:
 
@@ -14,7 +19,24 @@ Launch from a client:
 ssh -4 <user>@<board-host> -t tmux new-session -A -s kanban ~/.local/bin/ktui-board
 ```
 
-Client prerequisites: sshd on (macOS: System Settings → General → Sharing → Remote Login), the board
-host's public key in `~/.ssh/authorized_keys`, and `open-uri` installed. `-4` only matters if the
-client's firewall allows port 22 for IPv4 but not IPv6. The login user on each client defaults to the board host's username; map exceptions in the board
-host's `~/.ssh/config` (`Host <client ip>` / `User <name>`). Edit the vault path in `ktui-board` for your setup.
+Server side: any ntfy server (self-hosted or ntfy.sh) with a topic the host's token may write
+to and the devices' tokens may read. Desktop subscriber config (`~/.config/ntfy/client.yml`
+on Linux, `~/Library/Application Support/ntfy/client.yml` on macOS):
+
+```yaml
+default-host: https://ntfy.example.com
+default-token: tk_…
+subscribe:
+  - topic: ktui-notes
+    command: ~/.local/bin/ktui-notify-tap
+```
+
+Run it in the desktop session (`systemctl --user enable --now ntfy-client` on Linux). Edit the
+vault path and server URL in the scripts for your setup. `-4` on the launch command only matters
+if the client's firewall treats IPv4 and IPv6 differently.
+
+Test the sender on the board host exactly as `o` runs it (use a URI with `&file=`):
+
+```sh
+~/.local/bin/ktui-notify-note 'obsidian://open?vault=JCNotes&file=Some%20Note'
+```
