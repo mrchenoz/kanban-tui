@@ -1,16 +1,19 @@
 #!/usr/bin/env bash
-# Board TUI wrapper. Pressing `o` on a card must open the note where the *user* sits:
-#  - launched over SSH: hand the obsidian:// URI back to the SSH client (popeye, a Mac, ...)
-#    by running ~/.local/bin/open-uri there. Client address comes from SSH_CONNECTION.
-#    The login user on the client defaults to this username; map exceptions per client in
-#    ~/.ssh/config on this host (e.g. "Host 192.168.0.218" / "User joz" for the Mac Studio).
-#  - launched locally on this desktop: leave KANBAN_TUI_NOTE_OPEN_CMD unset -> xdg-open here.
+# Board TUI wrapper for the board host (headless, reached over SSH).
+#
+# Pressing `o` on a card hands the note's obsidian:// URI to KANBAN_TUI_NOTE_OPEN_CMD.
+# Here that is `ktui-notify-note`, which posts the link as an ntfy notification; the user
+# taps it on whichever device is in hand (phone, desktop) and Obsidian opens *there*.
+# Nothing opens on this host and this host never connects into another machine.
+#
+# Set KANBAN_TUI_NOTE_OPEN_CMD yourself before launching to override (e.g. leave it
+# empty on a desktop with a display: `KANBAN_TUI_NOTE_OPEN_CMD= ktui-board` -> xdg-open).
+#
 # Launch from another machine:
 #   ssh -4 jeremy@p5jc -t tmux new-session -A -s kanban ~/.local/bin/ktui-board
 export KANBAN_TUI_NOTE_VAULT="${KANBAN_TUI_NOTE_VAULT:-JCNotes}"
 export KANBAN_TUI_LOGS_ROOT="${KANBAN_TUI_LOGS_ROOT:-/home/jeremy/Documents/PKM/JCNotes/JCNotes}"
-if [ -n "${SSH_CONNECTION:-}" ] && [ -z "${KANBAN_TUI_NOTE_OPEN_CMD:-}" ]; then
-  client="${SSH_CONNECTION%% *}"
-  export KANBAN_TUI_NOTE_OPEN_CMD="ssh -o BatchMode=yes -o ConnectTimeout=3 -o StrictHostKeyChecking=accept-new ${client} ~/.local/bin/open-uri \\'{uri}\\'"
+if [ -z "${KANBAN_TUI_NOTE_OPEN_CMD+x}" ]; then
+  export KANBAN_TUI_NOTE_OPEN_CMD="$HOME/.local/bin/ktui-notify-note {uri}"
 fi
 exec "$HOME/.local/bin/kanban-tui" "$@"

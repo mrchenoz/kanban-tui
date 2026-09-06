@@ -210,31 +210,62 @@ class TaskCard(Vertical):
                 timeout=8,
             )
             return
+        self._run_note_command(command, name)
+
+    @work(thread=True, exit_on_error=False)
+    def _run_note_command(self, command: list[str], name: str) -> None:
+        """Run the note command off the UI thread and report how it went.
+
+        The command may be a local opener (``xdg-open``) or something that only sends
+        the link somewhere (e.g. ``contrib/ktui-notify-note`` posting to ntfy), so the
+        toast says what the command reported rather than assuming Obsidian opened.
+        """
+        custom = bool(os.getenv("KANBAN_TUI_NOTE_OPEN_CMD", "").strip())
         try:
-            subprocess.Popen(
+            result = subprocess.run(
                 command,
                 stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=15,
+                check=False,
             )
-        except OSError as exc:
-            self.notify(
-                title="Could not open note",
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            self.app.call_from_thread(
+                self.notify,
+                title="Note command failed",
                 message=escape(str(exc)),
                 severity="error",
+                timeout=8,
             )
             return
-        self.notify(title="Opening note", message=escape(name))
+        if result.returncode:
+            detail = (result.stderr or "").strip().splitlines()
+            self.app.call_from_thread(
+                self.notify,
+                title=f"Note command failed (exit {result.returncode})",
+                message=escape(detail[-1] if detail else " ".join(command[:1])),
+                severity="error",
+                timeout=8,
+            )
+            return
+        self.app.call_from_thread(
+            self.notify,
+            title="Note link sent" if custom else "Opening note",
+            message=escape(name),
+        )
 
     @staticmethod
     def _note_open_command(uri: str) -> list[str] | None:
-        """Command that opens ``uri`` here, or ``None`` if this machine has no display.
+        """Command that handles ``uri`` here, or ``None`` if this machine has no display.
 
         ``KANBAN_TUI_NOTE_OPEN_CMD`` wins when set: a command line whose ``{uri}``
-        placeholder is replaced (appended when absent). This is how a TUI running
-        over SSH hands the note back to the machine the user is sitting at, e.g.
-        ``ssh me@desktop env WAYLAND_DISPLAY=wayland-1 xdg-open \\'{uri}\\'`` (quote the
-        placeholder when a remote shell parses the line: the URI holds ``?`` and ``&``). Without it,
-        ``xdg-open`` is used when ``DISPLAY`` or ``WAYLAND_DISPLAY`` is set.
+        placeholder is replaced (appended when absent). It is split with ``shlex`` and
+        run without a shell, so the placeholder needs no quoting. This is how a TUI
+        running headless over SSH hands the note on, e.g.
+        ``~/.local/bin/ktui-notify-note {uri}`` (see ``contrib/``) posts the link as a
+        notification the user taps on the device in hand. Without it, ``xdg-open`` is
+        used when ``DISPLAY`` or ``WAYLAND_DISPLAY`` is set.
         """
         template = os.getenv("KANBAN_TUI_NOTE_OPEN_CMD", "").strip()
         if template:
