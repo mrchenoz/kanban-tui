@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 from urllib.parse import quote
 
+from kanban_tui import notelink
 from kanban_tui.config import Backends, MovementModes
 
 if TYPE_CHECKING:
@@ -198,13 +199,17 @@ class TaskCard(Vertical):
         vault = os.getenv("KANBAN_TUI_NOTE_VAULT", "JCNotes")
         uri = f"obsidian://open?vault={quote(vault)}&file={quote(name)}"
         command = self._note_open_command(uri)
+        if command is None and notelink.ntfy_configured():
+            self._send_note_link(uri, name)
+            return
         if command is None:
             self.app.copy_to_clipboard(uri)
             self.notify(
                 title="No display on this machine",
                 message=(
                     "Running over SSH? The note URI was copied to your clipboard. "
-                    "Set [$success]KANBAN_TUI_NOTE_OPEN_CMD[/] to open notes elsewhere."
+                    "Add an ntfy token at [$success]~/.config/ntfy/ktui-token[/] to get "
+                    "it as a notification, or set [$success]KANBAN_TUI_NOTE_OPEN_CMD[/]."
                 ),
                 severity="warning",
                 timeout=8,
@@ -213,12 +218,30 @@ class TaskCard(Vertical):
         self._run_note_command(command, name)
 
     @work(thread=True, exit_on_error=False)
+    def _send_note_link(self, uri: str, name: str) -> None:
+        """Headless host: post the link to ntfy; the user taps it where they are."""
+        try:
+            notelink.send_note_link(uri)
+        except notelink.NoteLinkError as exc:
+            self.app.call_from_thread(
+                self.notify,
+                title="Note link not sent",
+                message=escape(str(exc)),
+                severity="error",
+                timeout=8,
+            )
+            return
+        self.app.call_from_thread(
+            self.notify, title="Note link sent", message=escape(name)
+        )
+
+    @work(thread=True, exit_on_error=False)
     def _run_note_command(self, command: list[str], name: str) -> None:
         """Run the note command off the UI thread and report how it went.
 
         The command may be a local opener (``xdg-open``) or something that only sends
-        the link somewhere (e.g. ``contrib/ktui-notify-note`` posting to ntfy), so the
-        toast says what the command reported rather than assuming Obsidian opened.
+        the link somewhere, so the toast says what the command reported rather than
+        assuming Obsidian opened.
         """
         custom = bool(os.getenv("KANBAN_TUI_NOTE_OPEN_CMD", "").strip())
         try:
@@ -261,11 +284,10 @@ class TaskCard(Vertical):
 
         ``KANBAN_TUI_NOTE_OPEN_CMD`` wins when set: a command line whose ``{uri}``
         placeholder is replaced (appended when absent). It is split with ``shlex`` and
-        run without a shell, so the placeholder needs no quoting. This is how a TUI
-        running headless over SSH hands the note on, e.g.
-        ``~/.local/bin/ktui-notify-note {uri}`` (see ``contrib/``) posts the link as a
-        notification the user taps on the device in hand. Without it, ``xdg-open`` is
-        used when ``DISPLAY`` or ``WAYLAND_DISPLAY`` is set.
+        run without a shell, so the placeholder needs no quoting. Without it,
+        ``xdg-open`` is used when ``DISPLAY`` or ``WAYLAND_DISPLAY`` is set. ``None``
+        means headless: the caller sends the link via ntfy (see :mod:`kanban_tui.notelink`)
+        when a token is configured, else copies it to the clipboard.
         """
         template = os.getenv("KANBAN_TUI_NOTE_OPEN_CMD", "").strip()
         if template:
