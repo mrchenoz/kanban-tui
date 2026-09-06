@@ -1,6 +1,12 @@
 # Changelog
 
+Fork versions carry a PEP 440 local label on the upstream release they are built from:
+`<upstream>+jc.<n>` (e.g. `0.21.2+jc.1`). `n` restarts at 1 after each upstream merge.
+`ktui --version` / `uv tool list` show it, so a machine can be compared with this file.
+
 ## Unreleased
+
+## 0.21.2+jc.1 — 2026-09-07
 ### Added
 - Category filter on the board: `f` opens a sidebar listing All / each category / No category with task counts; picking one shows only those cards and the board frame reads `Filter: <name> (shown/total)`. The choice is stored per board in the config (`board.category_filters`) and restored on the next start.
 - `--category` option on `task list`, taking a category id or name (`none` for uncategorised tasks). Combines with `--column`, `--board` and `--actionable`, and is available to agents through the MCP server since it wraps the CLI.
