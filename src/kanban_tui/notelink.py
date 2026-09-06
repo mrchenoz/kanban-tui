@@ -201,15 +201,18 @@ def notify_tap_main() -> int:
                 timeout=15,
             )
             return 0
-        # notify-send prints the action key when clicked; prints nothing on timeout.
+        # notify-send prints the action key when the user picks it, nothing on
+        # timeout. The key must be "default": daemons that draw no buttons
+        # (Omarchy's quickshell, mako, dunst) fire only the default action, on a
+        # click of the toast itself.
         chosen = subprocess.run(
-            ["notify-send", "--action=open=Open", "-t", "20000", title, message],
+            ["notify-send", "--action=default=Open", "-t", "20000", title, message],
             capture_output=True,
             text=True,
             check=False,
             timeout=60,
         ).stdout.strip()
-        if chosen == "open":
+        if chosen == "default":
             open_uri_here(click)
     except (OSError, subprocess.SubprocessError, NoteLinkError) as exc:
         print(exc, file=sys.stderr)

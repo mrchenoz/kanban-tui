@@ -6,6 +6,10 @@ Fork versions carry a PEP 440 local label on the upstream release they are built
 
 ## Unreleased
 
+## 0.21.2+jc.2 — 2026-09-07
+### Fixed
+- `ktui-notify-tap` registers its notification action as `default`, not `open`. Daemons that draw no action buttons (Omarchy's quickshell, mako, dunst) only ever invoke the default action, on a click of the toast itself, so the Open click never reached the hook and the note never opened.
+
 ## 0.21.2+jc.1 — 2026-09-07
 ### Added
 - Category filter on the board: `f` opens a sidebar listing All / each category / No category with task counts; picking one shows only those cards and the board frame reads `Filter: <name> (shown/total)`. The choice is stored per board in the config (`board.category_filters`) and restored on the next start.

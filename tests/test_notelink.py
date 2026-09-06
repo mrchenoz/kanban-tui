@@ -132,12 +132,12 @@ def test_notify_tap_opens_only_after_click(monkeypatch):
 
     def fake_run(args, **kwargs):
         calls.append(args)
-        stdout = "open\n" if args[0] == "notify-send" else ""
+        stdout = "default\n" if args[0] == "notify-send" else ""
         return subprocess.CompletedProcess(args, 0, stdout=stdout, stderr="")
 
     monkeypatch.setattr(notelink.subprocess, "run", fake_run)
     assert notelink.notify_tap_main() == 0
-    assert calls[0][:2] == ["notify-send", "--action=open=Open"]
+    assert calls[0][:2] == ["notify-send", "--action=default=Open"]
     assert calls[0][-2:] == ["PB", "tap"]
     assert calls[1] == ["xdg-open", URI]
 
