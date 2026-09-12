@@ -5,6 +5,12 @@ Fork versions carry a PEP 440 local label on the upstream release they are built
 `ktui --version` / `uv tool list` show it, so a machine can be compared with this file.
 
 ## Unreleased
+### Added
+- `ktui mcp --transport http`: serve the MCP tools over Streamable HTTP(S) as one shared endpoint for several agents, instead of one stdio process per agent. Every request needs `Authorization: Bearer <token>` (token from a 0600 file, `ktui mcp --gen-token` creates it; or `KTUI_MCP_TOKEN`), TLS via `--ssl-certfile/--ssl-keyfile`, tool calls serialised by default (`--no-serialise` to allow concurrent), `--ktui-bin` to pick the executable the calls run. Needs the existing `[mcp]` extra (pycli-mcp already ships the HTTP server; this wires it up with auth). `docs/ktui-mcp.service` is a systemd template; README "MCP over HTTP(S)" has the Claude Code client entry.
+- `ktui mcp --exclude REGEX` and `--aggregate root|group|none` for both transports: hide subcommands (e.g. `'^(board|column) delete$'`) and choose between the single `ktui` args-array tool and one typed tool per subcommand.
+
+### Fixed
+- The MCP server now refuses calls that do not resolve to an exposed subcommand before spawning anything. With pycli-mcp's default single `ktui` tool the include filter only shaped the description, so an agent could run `ktui --web`, `ktui mcp` or any hidden subcommand through it.
 
 ## 0.21.2+jc.3 — 2026-09-07
 ### Changed

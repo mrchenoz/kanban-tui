@@ -249,6 +249,59 @@ started using the `--start-server` flag.
 ktui mcp
 ```
 
+#### MCP over HTTP(S) for several agents
+`ktui mcp --transport http` serves the same tools as one always-on Streamable-HTTP endpoint,
+so every agent on the LAN can work the *same* board through a plain MCP client entry (a URL and a
+token) with no shell or ssh access to the machine that owns the board. Every request must carry
+`Authorization: Bearer <token>`; anything else, on any path, is answered `401`.
+
+```bash
+ktui mcp --gen-token                                   # writes ~/.config/kanban_tui/mcp-token (0600), prints it once
+ktui mcp --start-server --transport http --host 192.168.0.222 --port 5057
+```
+
+On each agent (Claude Code):
+
+```bash
+claude mcp add --transport http --scope user ktui http://192.168.0.222:5057/mcp \
+    --header 'Authorization: Bearer <TOKEN>'
+claude mcp list        # ktui: http://192.168.0.222:5057/mcp (HTTP) - ✔ Connected
+```
+
+or the equivalent JSON in the agent's MCP config:
+
+```json
+{ "mcpServers": { "ktui": { "type": "http", "url": "http://192.168.0.222:5057/mcp",
+                            "headers": { "Authorization": "Bearer <TOKEN>" } } } }
+```
+
+Options (see `ktui mcp --help`):
+
+- `--host` / `--port`: bind to the machine's LAN address, never `0.0.0.0`. Pair it with a
+  LAN-scoped firewall rule.
+- `--token-file`: defaults to `<config dir>/mcp-token`; the server refuses a file that is
+  group- or world-readable. `KTUI_MCP_TOKEN` in the environment works for ad-hoc runs.
+- `--ssl-certfile` / `--ssl-keyfile`: serve HTTPS (then use `https://` in the client entry).
+- `--exclude REGEX`: hide subcommands, e.g. `--exclude '^(board|column) delete$'` lets agents
+  create, update, move and delete *tasks* but not remove boards or columns. Unlike the plain
+  description filter, this is enforced on every call: an agent asking the `ktui` tool for a
+  hidden or non-exposed subcommand (`board delete`, `--web`, `mcp`, ...) gets a refusal and no
+  process is started. The same guard applies to the stdio server.
+- `--aggregate`: `root` (default) is the shape agents already know, one `ktui` tool taking an
+  `args` array; `none` gives one typed tool per subcommand (`ktui.task.create`, ...).
+- `--serialise` (default): tool calls run one at a time, so agents writing at the same moment
+  queue for milliseconds instead of racing on sqlite locks or on `config.toml`.
+- The board is the one this user's ktui uses (XDG config and data dirs, or the
+  `KANBAN_TUI_CONFIG_FILE` / `KANBAN_TUI_DATABASE_FILE` variables). Each tool call runs
+  `ktui ...` as a subprocess, exactly as the stdio server does, so anything the TUI shows
+  (notifications included) sees the agents' changes unchanged.
+
+To run it as a service, `docs/ktui-mcp.service` is a systemd unit template: fill in the user,
+LAN address and port, create the token as that user with `ktui mcp --gen-token`, then
+`systemctl enable --now ktui-mcp`. The journal's first lines show the ktui version, board path,
+exposed tools and URL. Rotate the token by removing the file, running `--gen-token` again,
+restarting the service and updating each agent's client entry.
+
 ### Show Location of Data, Config and Skill Files
 `kanban-tui` follows the [XDG] basedir-spec and uses the [xdg-base-dirs] package to get the locations for data and config files.
 You can use this command to check where the files are located, that `kanban-tui` creates on your system.

@@ -1,0 +1,44 @@
+# ktui MCP over HTTP as a systemd service (template).
+#
+# Serves the board owner's ktui to agents on the LAN: one shared Streamable-HTTP MCP endpoint,
+# bearer token on every request, only ktui's task/board/column/category commands reachable.
+#
+# Install:  sudo cp docs/ktui-mcp.service /etc/systemd/system/ktui-mcp.service
+#           edit <USER>, <LAN_IP>, <PORT>; the token comes from ~/.config/kanban_tui/mcp-token
+#           (create as <USER> with `ktui mcp --gen-token`, it is written with mode 0600)
+#           sudo systemctl daemon-reload && sudo systemctl enable --now ktui-mcp
+# Check:    journalctl -u ktui-mcp -n 20   (shows ktui version, board path, tool names, URL)
+# Client:   claude mcp add --transport http --scope user ktui http://<LAN_IP>:<PORT>/mcp \
+#               --header 'Authorization: Bearer <TOKEN>'
+
+[Unit]
+Description=ktui MCP server over HTTP (kanban board tools for agents)
+Documentation=https://github.com/mrchenoz/kanban-tui#mcp-server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=<USER>
+Group=<USER>
+WorkingDirectory=/home/<USER>
+# HOME selects the board: ~/.config/kanban_tui/config.toml and ~/.local/share/kanban_tui/kanban_tui.db
+Environment=HOME=/home/<USER>
+Environment=PYTHONUNBUFFERED=1
+# --exclude keeps agents from deleting boards or columns; drop it for full parity with `ktui mcp`.
+ExecStart=/home/<USER>/.local/bin/ktui mcp --start-server --transport http --host <LAN_IP> --port <PORT> --exclude '^(board|column) delete$'
+Restart=on-failure
+RestartSec=3
+
+# Hardening: the service only needs the user's home (board + uv tool env) and the network.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+
+[Install]
+WantedBy=multi-user.target
