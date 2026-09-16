@@ -83,6 +83,18 @@ Keep every existing move test green (including the confirm/abort ones). Add:
   case the old code got wrong).
 - `task delete --no-confirm` tests unchanged.
 
+### 4b. Bonus fix in the same file: `task list --board N --column M` crashes
+
+Found by neo 2026-09-16, reproduced on p5jc: `ktui task list --json --board 2 --column 6` →
+`UnboundLocalError: cannot access local variable 'board_present'` at `task_commands.py:184`.
+Cause: in `list_tasks()` the `if column:` branch wins and never sets `board_present`, but the
+later `elif board and not board_present:` still evaluates it whenever `board` was given and the
+result is non-empty. Fix: compute `board_present` whenever `board` is given (before choosing the
+task source), or default it to `True`; while there, when both are given, validate that the column
+belongs to that board and say so if not. Add a test: `--board 2 --column <col on board 2>` with
+tasks → exit 0 and the JSON list; `--board 2 --column <col on another board>` → a clear message,
+not a traceback. Ship with the move fix in `0.21.2+jc.5`.
+
 ### 5. Housekeeping
 
 - Bump `pyproject.toml` to `0.21.2+jc.5`; add a CHANGELOG entry (the file already has a
