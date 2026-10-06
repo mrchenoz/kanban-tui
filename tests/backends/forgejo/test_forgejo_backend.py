@@ -172,9 +172,17 @@ def test_move_swaps_status_label(backend, fake):
     assert ("remove_label", 3, LABELS["ready"]) in fake.calls
 
 
-def test_move_to_done_closes(backend, fake):
+def test_move_to_done_closes_and_drops_status_label(backend, fake):
+    fake.add(5, labels=["status/review", "bug"])
     assert _moved(backend, 5, 5)["success"]
     assert fake.issues[5]["state"] == "closed"
+    assert [lab["name"] for lab in fake.issues[5]["labels"]] == ["bug"]
+
+
+def test_reopened_issue_without_label_lands_in_backlog(backend, fake):
+    _moved(backend, 5, 5)
+    fake.issues[5]["state"] = "open"  # reopened in the Forgejo web UI
+    assert backend.get_task_by_id(5).column == 1
 
 
 def test_move_out_of_done_reopens(backend, fake):

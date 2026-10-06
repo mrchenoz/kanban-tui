@@ -218,6 +218,9 @@ class ForgejoBackend(Backend):
         is_closed = new_task.metadata.get("state") == "closed"
         try:
             if new_task.column == DONE_COLUMN:
+                # Done carries no status label: a closed issue keeps none, so one
+                # reopened in Forgejo lands in Backlog rather than its old column.
+                self._remove_status_labels(entry, new_task)
                 self.client.edit_issue(owner, repo, number, {"state": "closed"})
                 return {"success": True, "message": f"#{number} closed"}
 
@@ -233,13 +236,9 @@ class ForgejoBackend(Backend):
                 self.client.edit_issue(owner, repo, number, {"state": "open"})
             # Drop other status labels first, so this also works when the labels
             # are not marked exclusive in Forgejo.
-            for other in self._status_labels_on(new_task):
-                if other != suffix:
-                    self.client.remove_label(
-                        owner, repo, number, self._status_label_ids(entry)[other]
-                    )
+            self._remove_status_labels(entry, new_task, keep=suffix)
             self.client.add_labels(owner, repo, number, [label_id])
-        except (ForgejoError, KeyError) as exc:
+        except ForgejoError as exc:
             return {"success": False, "message": str(exc)}
         return {
             "success": True,
@@ -323,6 +322,16 @@ class ForgejoBackend(Backend):
             for name in task.metadata.get("labels", [])
             if name.startswith(prefix)
         ]
+
+    def _remove_status_labels(
+        self, entry: ForgejoRepoEntry, task: Task, keep: str | None = None
+    ) -> None:
+        label_ids = self._status_label_ids(entry)
+        for suffix in self._status_labels_on(task):
+            if suffix != keep and suffix in label_ids:
+                self.client.remove_label(
+                    entry.owner, entry.repo, task.task_id, label_ids[suffix]
+                )
 
     def _issue_column(self, issue: dict) -> int:
         if issue.get("state") == "closed":
