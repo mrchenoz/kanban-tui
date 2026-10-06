@@ -91,9 +91,13 @@ class KanbanTui(App[str | None]):
                 from kanban_tui.backends.claude.backend import ClaudeBackend
 
                 backend = ClaudeBackend(self.config.backend.claude_settings)
+            case Backends.FORGEJO:
+                from kanban_tui.backends.forgejo.backend import ForgejoBackend
+
+                backend = ForgejoBackend(self.config.backend.forgejo_settings)
             case _:
                 raise NotImplementedError(
-                    "Only sqlite, jira, and claude backends are supported"
+                    "Only sqlite, jira, claude and forgejo backends are supported"
                 )
 
         return backend
@@ -182,6 +186,22 @@ class KanbanTui(App[str | None]):
                     message="Read-only mode: viewing Claude Code tasks from ~/.claude/tasks/",
                     severity="information",
                 )
+
+            case Backends.FORGEJO:
+                from kanban_tui.backends.forgejo.backend import missing_setup
+
+                problem = missing_setup(self.config.backend.forgejo_settings)
+                if problem:
+                    self.notify(
+                        title="Forgejo backend not configured",
+                        message=f"Please {problem}.",
+                        severity="warning",
+                    )
+                    with self.prevent(Select.Changed):
+                        event.select.value = f"✔  {self.app.config.backend.mode}"
+                    self.action_focus_next()
+                    return
+                self.config.set_backend(new_backend=backend_value)
         self.backend = self.get_backend()
         # This make the checkmark on the new backend
         event.select.update_values()
@@ -211,6 +231,10 @@ class KanbanTui(App[str | None]):
                     )
                 case Backends.JIRA:
                     self.config.set_active_jql(new_jql=self.active_board.board_id)
+                case Backends.FORGEJO:
+                    self.config.set_active_forgejo_repo(
+                        new_repo=self.active_board.board_id
+                    )
 
         self.update_column_list()
         # If updating Board, refresh setting screen

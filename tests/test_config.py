@@ -103,6 +103,14 @@ def test_default_config(test_config: Settings, test_database_path: str) -> None:
                 "jqls": [],
                 "active_jql": 1,
             },
+            "forgejo_settings": {
+                "base_url": "",
+                "token_file": "",
+                "repos": [],
+                "active_repo": 1,
+                "label_prefix": "status/",
+                "done_days": 14,
+            },
         },
     }
     assert settings_dict == default_settings

@@ -5,6 +5,8 @@ Fork versions carry a PEP 440 local label on the upstream release they are built
 `ktui --version` / `uv tool list` show it, so a machine can be compared with this file.
 
 ## Unreleased
+### Added
+- `forgejo` backend: a Forgejo/Gitea repo's issues as a board, one board per configured repo. Columns Backlog / Ready / Doing / Review come from exclusive `status/*` labels (unlabelled open issues show in Backlog) and Done is issues closed within `done_days` (default 14). Moving a card swaps the status label or closes / reopens the issue; creating or editing a card creates or edits the issue (title, body, due date). Token from `KTUI_FORGEJO_TOKEN` or `forgejo_settings.token_file`; stdlib HTTP only, no new dependency. Categories, dependencies, board/column editing and deleting issues are not supported.
 
 ## 0.21.2+jc.4 — 2026-09-14
 ### Added

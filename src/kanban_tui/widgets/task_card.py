@@ -322,7 +322,10 @@ class TaskCard(Vertical):
         self.app.push_screen(ModalLogViewScreen(log_path))
 
     def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
-        if self.app.config.backend.mode == Backends.JIRA and action not in (
+        if self.app.config.backend.mode in (
+            Backends.JIRA,
+            Backends.FORGEJO,
+        ) and action not in (
             "edit_task",
             "move_task",
             "show_blocking_tasks",

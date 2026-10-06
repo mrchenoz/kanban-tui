@@ -44,12 +44,33 @@ Deletion of existing columns is only possible, if no task is present in the colu
 
 <details><summary>Multiple Backends</summary>
 
-kanban-tui currently supports three backends.
+kanban-tui currently supports four backends.
 - **sqlite** (default) | Supports all features of `kanban-tui`
 - **jira** | Connect to your jira instance via api key and query tasks via jql.
 Columns are defined by task transitions.
 - **claude** | Read the `.json` files under `~/.claude/tasks/`. Boards are created for each session ID.
 Supports only a subset of features
+- **forgejo** | Show a Forgejo (or Gitea) repo's issues as a board. Each configured repo is a board
+and each issue a card (the issue number is the task id). Columns come from exclusive status labels:
+`Backlog` (`status/backlog`, or no status label), `Ready`, `Doing`, `Review` (`status/ready|doing|review`)
+and `Done` (issues closed in the last `done_days` days). Moving a card swaps its status label or
+closes / reopens the issue; new and edited cards create / edit issues. Needs an API token with
+`write:issue` + `read:repository`, from `KTUI_FORGEJO_TOKEN` or `token_file`. Configure in `config.toml`:
+
+  ```toml
+  [backend]
+  mode = "forgejo"
+  [backend.forgejo_settings]
+  base_url = "https://git.example.org"
+  token_file = "~/.secrets/forgejo-token"
+  done_days = 14
+  [[backend.forgejo_settings.repos]]
+  id = 1
+  name = "My project"
+  owner = "me"
+  repo = "my-project"
+  ```
+  The status labels must already exist in each repo (mark them exclusive in Forgejo).
 
 
 </details>

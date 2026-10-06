@@ -24,6 +24,7 @@ class Backends(StrEnum):
     SQLITE = "sqlite"
     JIRA = "jira"
     CLAUDE = "claude"
+    FORGEJO = "forgejo"
 
 
 class MovementModes(StrEnum):
@@ -78,6 +79,24 @@ class ClaudeBackendSettings(BaseModel):
     active_session_id: str = Field(default="")
 
 
+class ForgejoRepoEntry(BaseModel):
+    id: int
+    name: str
+    owner: str
+    repo: str
+
+
+class ForgejoBackendSettings(BaseModel):
+    base_url: str = Field(default="")
+    # File holding the API token; KTUI_FORGEJO_TOKEN overrides it.
+    token_file: str = Field(default="")
+    repos: list[ForgejoRepoEntry] = Field(default_factory=list)
+    active_repo: int = Field(default=1)
+    label_prefix: str = Field(default="status/")
+    # Closed issues show in Done for this many days, then drop off the board.
+    done_days: int = Field(default=14)
+
+
 class BackendSettings(BaseModel):
     mode: Backends = Field(default=Backends("sqlite"))
     sqlite_settings: SqliteBackendSettings = Field(
@@ -86,6 +105,9 @@ class BackendSettings(BaseModel):
     jira_settings: JiraBackendSettings = Field(default_factory=JiraBackendSettings)
     claude_settings: ClaudeBackendSettings = Field(
         default_factory=ClaudeBackendSettings
+    )
+    forgejo_settings: ForgejoBackendSettings = Field(
+        default_factory=ForgejoBackendSettings
     )
 
 
@@ -163,6 +185,10 @@ class Settings(BaseSettings):
 
     def set_active_jql(self, new_jql: int) -> None:
         self.backend.jira_settings.active_jql = new_jql
+        self.save()
+
+    def set_active_forgejo_repo(self, new_repo: int) -> None:
+        self.backend.forgejo_settings.active_repo = new_repo
         self.save()
 
     def save(self, path: str = CONFIG_FILE.as_posix()):
