@@ -71,6 +71,8 @@ closes / reopens the issue; new and edited cards create / edit issues. Needs an 
   repo = "my-project"
   ```
   The status labels must already exist in each repo (mark them exclusive in Forgejo).
+  An optional non-exclusive `status/blocked` label is a flag, not a column: moves never remove it,
+  and the card shows `⛔ blocked` in a red frame (any backend can set this with task metadata `blocked`).
 
 
 </details>

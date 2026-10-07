@@ -81,6 +81,10 @@ TaskCard {
   &.blinking {
     border: tall $warning;
   }
+  &.blocked {
+    border: tall $error;
+    border-title-color: $error;
+  }
 }
 TaskCard.drop-before {
   border-top: thick $warning;

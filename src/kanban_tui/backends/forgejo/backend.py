@@ -9,7 +9,10 @@ task id. Columns come from exclusive status labels, plus closed issues as Done:
     Review   status/review
     Done     closed issues, closed within the last ``done_days`` days
 
-Moving a card swaps the status label, or closes / reopens the issue.
+Moving a card swaps the status label, or closes / reopens the issue. Only these
+four column labels are ever removed: other labels under the prefix stay. In
+particular ``status/blocked`` (non-exclusive, any column) survives moves and shows
+as a flag on the card.
 """
 
 from __future__ import annotations
@@ -42,6 +45,8 @@ BACKLOG_COLUMN = 1
 DOING_COLUMN = 3
 REVIEW_COLUMN = 4
 DONE_COLUMN = 5
+COLUMN_SUFFIXES = {suffix for _, _, suffix in COLUMNS if suffix}
+BLOCKED_SUFFIX = "blocked"
 
 
 def _parse_datetime(value: str | None) -> datetime | None:
@@ -218,7 +223,7 @@ class ForgejoBackend(Backend):
         is_closed = new_task.metadata.get("state") == "closed"
         try:
             if new_task.column == DONE_COLUMN:
-                # Done carries no status label: a closed issue keeps none, so one
+                # Done carries no column label: a closed issue keeps none, so one
                 # reopened in Forgejo lands in Backlog rather than its old column.
                 self._remove_status_labels(entry, new_task)
                 self.client.edit_issue(owner, repo, number, {"state": "closed"})
@@ -234,8 +239,8 @@ class ForgejoBackend(Backend):
                 }
             if is_closed:
                 self.client.edit_issue(owner, repo, number, {"state": "open"})
-            # Drop other status labels first, so this also works when the labels
-            # are not marked exclusive in Forgejo.
+            # Drop the other column labels first, so this also works when the
+            # labels are not marked exclusive in Forgejo.
             self._remove_status_labels(entry, new_task, keep=suffix)
             self.client.add_labels(owner, repo, number, [label_id])
         except ForgejoError as exc:
@@ -315,19 +320,21 @@ class ForgejoBackend(Backend):
             }
         return self._label_cache[key]
 
-    def _status_labels_on(self, task: Task) -> list[str]:
+    def _column_labels_on(self, task: Task) -> list[str]:
+        """Suffixes of the column labels on the task; other status labels such as
+        ``status/blocked`` are not column labels and are left alone."""
         prefix = self.settings.label_prefix
         return [
             name[len(prefix) :]
             for name in task.metadata.get("labels", [])
-            if name.startswith(prefix)
+            if name.startswith(prefix) and name[len(prefix) :] in COLUMN_SUFFIXES
         ]
 
     def _remove_status_labels(
         self, entry: ForgejoRepoEntry, task: Task, keep: str | None = None
     ) -> None:
         label_ids = self._status_label_ids(entry)
-        for suffix in self._status_labels_on(task):
+        for suffix in self._column_labels_on(task):
             if suffix != keep and suffix in label_ids:
                 self.client.remove_label(
                     entry.owner, entry.repo, task.task_id, label_ids[suffix]
@@ -373,6 +380,7 @@ class ForgejoBackend(Backend):
                 "labels": labels,
                 "assignees": assignees,
                 "milestone": milestone,
+                "blocked": f"{self.settings.label_prefix}{BLOCKED_SUFFIX}" in labels,
                 "backend_source": "forgejo",
             },
         )

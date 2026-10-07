@@ -6,6 +6,7 @@ Fork versions carry a PEP 440 local label on the upstream release they are built
 
 ## Unreleased
 ### Added
+- Blocked flag on cards: a task whose metadata has `blocked` set shows `⛔ blocked` in its frame with a red border. The forgejo backend sets it from a non-exclusive `status/blocked` label, and its moves now remove only the four column labels (`status/backlog|ready|doing|review`), so `status/blocked` survives moves (including to Done).
 - `forgejo` backend: a Forgejo/Gitea repo's issues as a board, one board per configured repo. Columns Backlog / Ready / Doing / Review come from exclusive `status/*` labels (unlabelled open issues show in Backlog) and Done is issues closed within `done_days` (default 14). Moving a card swaps the status label, or closes the issue and drops its status label (Done has none), or reopens it; creating or editing a card creates or edits the issue (title, body, due date). Token from `KTUI_FORGEJO_TOKEN` or `forgejo_settings.token_file`; stdlib HTTP only, no new dependency. Categories, dependencies, board/column editing and deleting issues are not supported.
 
 ## 0.21.2+jc.4 — 2026-09-14

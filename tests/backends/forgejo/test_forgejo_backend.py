@@ -10,7 +10,8 @@ from kanban_tui.backends.forgejo.backend import (
 from kanban_tui.backends.forgejo.forgejo_api import ForgejoError
 from kanban_tui.config import ForgejoBackendSettings, ForgejoRepoEntry
 
-LABELS = {"backlog": 19, "ready": 20, "doing": 21, "review": 22}
+LABELS = {"backlog": 19, "ready": 20, "doing": 21, "review": 22, "blocked": 23}
+EXCLUSIVE = {f"status/{name}" for name in ("backlog", "ready", "doing", "review")}
 
 
 def _iso(delta_days: float = 0) -> str:
@@ -73,8 +74,10 @@ class FakeForgejo:
         self.calls.append(("add_labels", number, label_ids))
         issue = self.issues[number]
         new = [lab for lab in self.labels if lab["id"] in label_ids]
+        # Like Forgejo: an exclusive label replaces the other exclusive labels of
+        # its scope; non-exclusive ones (status/blocked) stay.
         issue["labels"] = [
-            lab for lab in issue["labels"] if not lab["name"].startswith("status/")
+            lab for lab in issue["labels"] if lab["name"] not in EXCLUSIVE
         ] + new
         return issue["labels"]
 
@@ -230,3 +233,28 @@ def test_fetch_error_gives_empty_board(backend, fake):
 
     fake.list_issues = boom
     assert backend.get_tasks_on_active_board() == []
+
+
+def test_blocked_label_is_a_flag_not_a_column(backend, fake):
+    fake.add(4, labels=["status/doing", "status/blocked"])
+    task = backend.get_task_by_id(4)
+    assert task.column == 3
+    assert task.metadata["blocked"] is True
+    assert backend.get_task_by_id(3).metadata["blocked"] is False
+
+
+def test_moves_keep_status_blocked(backend, fake):
+    fake.add(4, labels=["status/doing", "status/blocked", "bug"])
+    assert _moved(backend, 4, 4)["success"]
+    assert [lab["name"] for lab in fake.issues[4]["labels"]] == [
+        "status/blocked",
+        "bug",
+        "status/review",
+    ]
+    assert ("remove_label", 4, LABELS["blocked"]) not in fake.calls
+
+
+def test_done_keeps_status_blocked(backend, fake):
+    fake.add(5, labels=["status/review", "status/blocked"])
+    assert _moved(backend, 5, 5)["success"]
+    assert [lab["name"] for lab in fake.issues[5]["labels"]] == ["status/blocked"]

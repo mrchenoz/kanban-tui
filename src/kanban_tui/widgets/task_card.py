@@ -146,11 +146,17 @@ class TaskCard(Vertical):
         self.color_task()
 
     def update_border_title(self) -> None:
-        """Show the task id in the card frame, so it can be referenced on the CLI."""
+        """Show the task id in the card frame, so it can be referenced on the CLI,
+        and flag a blocked task (metadata ``blocked``, e.g. Forgejo's
+        ``status/blocked`` label) with a red frame."""
+        parts = []
         if self.app.config.task.show_task_id:
-            self.border_title = f"#{self.task_.task_id}"
-        else:
-            self.border_title = ""
+            parts.append(f"#{self.task_.task_id}")
+        blocked = bool(self.task_.get_metadata("blocked"))
+        if blocked:
+            parts.append("⛔ blocked")
+        self.border_title = " · ".join(parts)
+        self.set_class(blocked, "blocked")
 
     def color_task(self):
         if category_id := self.task_.category:
